@@ -1,53 +1,47 @@
-.PHONY: all run clean
+TARGET := riscv64gc-unknown-none-elf
+PROFILE ?= debug
+BOARD   ?= virt
 
-TARGET      := riscv64gc-unknown-none-elf
-DEBUG_KERNEL_FILE := target/$(TARGET)/debug/rvos
-RELEASE_KERNEL_FILE := target/$(TARGET)/release/rvos
+ROOT			:= $(shell pwd)
+TARGET_DIR 	:= $(ROOT)/target/$(TARGET)/$(PROFILE)
 
-OBJDUMP     := rust-objdump --arch-name=riscv64
-OBJCOPY     := rust-objcopy --binary-architecture=riscv64
+SBI     ?= $(ROOT)/sbi/opensbi.bin
 
+KERNEL  := $(TARGET_DIR)/kernel
 
-build_debug:
-	@cargo build --target $(TARGET)
-	cp $(DEBUG_KERNEL_FILE) kernel-qemu
+OBJDUMP := rust-objdump --arch-name=riscv64
 
-build_release:
-	@cargo build --target $(TARGET) -r
-	cp $(RELEASE_KERNEL_FILE) kernel-qemu
+QEMU    := qemu-system-riscv64
 
-run: build_release
-	@qemu-system-riscv64 \
-    -machine virt \
-    -bios default \
-    -device loader,file=kernel-qemu,addr=0x80200000 \
-    -kernel kernel-qemu \
-    -nographic \
-    -smp 4 -m 2G
+BUILDARGS := --target $(TARGET)
 
-debug_run: build_debug
-	@qemu-system-riscv64 \
-    -machine virt \
-    -bios default \
-    -device loader,file=kernel-qemu,addr=0x80200000 \
-    -kernel kernel-qemu \
-    -nographic \
-    -smp 8 -m 2G \
+ifeq ($(PROFILE),release)
+BUILDARGS += --release
+endif
 
-debug: build_debug
-	@qemu-system-riscv64 \
-    -machine virt \
-    -bios default \
-    -device loader,file=kernel-qemu,addr=0x80200000 \
-    -kernel kernel-qemu \
-    -nographic \
-    -smp 8 -m 2G \
-    -s -S &
-	@gdb-multiarch -ex "target remote localhost:1234" -ex "symbol-file $(DEBUG_KERNEL_FILE)"  && killall qemu-system-riscv64
+QEMU_ARGS :=
+QEMU_ARGS += -smp 8
+QEMU_ARGS += -m 2G
+QEMU_ARGS += -machine $(BOARD)
+QEMU_ARGS += -nographic
+QEMU_ARGS += -bios $(SBI)
+QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200000
+QEMU_ARGS += -kernel $(KERNEL)
 
-objdump:
-	@rust-objdump -DS $(DEBUG_KERNEL_FILE) > kernel.asm
+build:
+	cd kernel && cargo build $(BUILDARGS)
+
+run: build
+	$(QEMU) $(QEMU_ARGS)
+
+debug: build
+	$(QEMU) $(QEMU_ARGS) -s -S & 
+	gdb-multiarch -ex "target remote localhost:1234" -ex "symbol-file $(KERNEL)" && killall $(QEMU)
+
+objdump: build
+	$(OBJDUMP) -d $(KERNEL) > kernel.asm
 
 clean:
-	@rm kernel-qemu
-	@rm $(DEBUG_KERNEL_FILE) $(RELEASE_KERNEL_FILE)
+	cargo clean
+
+.PHONY: run debug objdump clean

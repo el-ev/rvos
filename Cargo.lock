@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "rvos"
+name = "kernel"
 version = "0.1.0"

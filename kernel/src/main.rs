@@ -8,6 +8,6 @@ mod panic;
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
     loop {
-        core::hint::spin_loop();
+        core::hint::spin_loop(); 
     }
 }

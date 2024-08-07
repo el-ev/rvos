@@ -10,7 +10,7 @@ unsafe extern "C" fn _low_entry() -> ! {
             li  t0, 0xffffffff00000000
             la  t1, _high_entry
             add t1, t1, t0
-            add  sp, sp, t0
+            add sp, sp, t0
             jr  t1
         ",
         set_stack   = sym set_stack,

@@ -1,15 +1,3 @@
-[package]
-name = "rvos"
-version = "0.1.0"
-edition = "2021"
-authors = ["Qin-shihuang <0.0@owo.li>"]
-
-[dependencies]
-
-
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-opt-level = 2
-lto = true
+[workspace]
+resolver = "2"
+members = ["kernel"]
