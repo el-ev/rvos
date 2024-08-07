@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Qin-shihuang <0.0@owo.li>"]
 
 [dependencies]
-
+sbi = { path = "../crates/sbi" }
 [profile.dev]
 opt-level = 0
 

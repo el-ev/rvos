@@ -5,3 +5,10 @@ version = 3
 [[package]]
 name = "kernel"
 version = "0.1.0"
+dependencies = [
+ "sbi",
+]
+
+[[package]]
+name = "sbi"
+version = "0.1.0"
