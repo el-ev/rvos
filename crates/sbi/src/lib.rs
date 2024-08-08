@@ -27,16 +27,16 @@ pub fn sbi_call(eid: u64, fid: u64, arg0: u64, arg1: u64, arg2: u64) -> Sbiret {
     }
     Sbiret {
         error: match error {
-            0 => SbiError::SbiSuccess,
-            -1 => SbiError::SbiErrFailed,
-            -2 => SbiError::SbiErrNotSupported,
-            -3 => SbiError::SbiErrInvalidParam,
-            -4 => SbiError::SbiErrDenied,
-            -5 => SbiError::SbiErrInvalidAddress,
-            -6 => SbiError::SbiErrAlreadyAvailable,
-            -7 => SbiError::SbiErrAlreadyStarted,
-            -8 => SbiError::SbiErrAlreadyStopped,
-            -9 => SbiError::SbiErrNoShrem,
+            0 => SbiError::Success,
+            -1 => SbiError::ErrFailed,
+            -2 => SbiError::ErrNotSupported,
+            -3 => SbiError::ErrInvalidParam,
+            -4 => SbiError::ErrDenied,
+            -5 => SbiError::ErrInvalidAddress,
+            -6 => SbiError::ErrAlreadyAvailable,
+            -7 => SbiError::ErrAlreadyStarted,
+            -8 => SbiError::ErrAlreadyStopped,
+            -9 => SbiError::ErrNoShrem,
             _ => panic!("Unknown SBI error code: {}", error),
         },
         value,
@@ -48,21 +48,21 @@ pub struct Sbiret {
     pub value: u64,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum SbiError {
-    SbiSuccess = 0,
-    SbiErrFailed = -1,
-    SbiErrNotSupported = -2,
-    SbiErrInvalidParam = -3,
-    SbiErrDenied = -4,
-    SbiErrInvalidAddress = -5,
-    SbiErrAlreadyAvailable = -6,
-    SbiErrAlreadyStarted = -7,
-    SbiErrAlreadyStopped = -8,
-    SbiErrNoShrem = -9
+    Success = 0,
+    ErrFailed = -1,
+    ErrNotSupported = -2,
+    ErrInvalidParam = -3,
+    ErrDenied = -4,
+    ErrInvalidAddress = -5,
+    ErrAlreadyAvailable = -6,
+    ErrAlreadyStarted = -7,
+    ErrAlreadyStopped = -8,
+    ErrNoShrem = -9
 }
 impl Sbiret {
     pub fn is_success(&self) -> bool {
-        self.error == SbiError::SbiSuccess
+        self.error == SbiError::Success
     }
 }

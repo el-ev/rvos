@@ -6,9 +6,5 @@ authors = ["Qin-shihuang <0.0@owo.li>"]
 
 [dependencies]
 sbi = { path = "../crates/sbi" }
-[profile.dev]
-opt-level = 0
 
-[profile.release]
-opt-level = 2
-lto = true
+spin = "0.9.8"

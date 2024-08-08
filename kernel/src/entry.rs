@@ -1,16 +1,18 @@
 use core::arch::{asm, global_asm};
 
 #[naked]
+#[no_mangle]
 #[link_section = ".init.boot"]
-#[export_name = "_low_entry"]
-unsafe extern "C" fn _low_entry() -> ! {
+pub unsafe extern "C" fn _low_entry() -> ! {
     asm!(
-        "   call {set_stack}
+        "   mv  tp, a0
+            call {set_stack}
             call {set_boot_page_table}
             li  t0, 0xffffffff00000000
             la  t1, _high_entry
             add t1, t1, t0
             add sp, sp, t0
+            add a1, a1, t0
             jr  t1
         ",
         set_stack   = sym set_stack,
@@ -20,11 +22,11 @@ unsafe extern "C" fn _low_entry() -> ! {
 }
 
 #[naked]
+#[no_mangle]
 #[link_section = ".text.entry"]
-#[export_name = "_high_entry"]
 unsafe extern "C" fn _high_entry(hartid: usize) -> ! {
     core::arch::asm!(
-        "   mv   tp, a0
+        "
             la   t0, kernel_main
             jr   t0
         ",
@@ -46,7 +48,7 @@ global_asm!(
 );
 
 #[repr(C, align(4096))]
-struct KernelStack([u8; 1024 * 1024]); // 1MiB stack
+struct KernelStack([u8; 1 << 20 << 3]); // 8MiB stack
 
 #[link_section = ".bss.stack"]
 static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; 8]> =
@@ -57,7 +59,7 @@ static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; 8]> =
 unsafe extern "C" fn set_stack(hartid: usize) {
     asm!(
         "   add  t0, a0, 1
-            slli t0, t0, 18
+            slli t0, t0, 20
             la   sp, {stack}
             add  sp, sp, t0
             ret
@@ -76,6 +78,7 @@ unsafe extern "C" fn set_boot_page_table(hartid: usize) {
             li   t1, 8 << 60
             or   t0, t0, t1
             csrw satp, t0
+            sfence.vma
             ret
         ",
         options(noreturn),

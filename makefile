@@ -36,7 +36,7 @@ run: build
 
 debug: build
 	$(QEMU) $(QEMU_ARGS) -s -S & 
-	gdb-multiarch -ex "target remote localhost:1234" -ex "symbol-file $(KERNEL)" && killall $(QEMU)
+	gdb-multiarch -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)" && killall $(QEMU)
 
 objdump: build
 	$(OBJDUMP) -d $(KERNEL) > kernel.asm
