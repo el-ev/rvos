@@ -5,18 +5,29 @@ use core::arch::{asm, global_asm};
 #[link_section = ".init.boot"]
 pub unsafe extern "C" fn _low_entry() -> ! {
     asm!(
-        "   mv  tp, a0
-            call {set_stack}
-            call {set_boot_page_table}
-            li  t0, 0xffffffff00000000
+        "   
+            mv  tp, a0
+            li  s0, 0xffffffff00000000
+            add a1, a1, s0
+
+            add  t0, tp, 1
+            slli t0, t0, 18
+            la   sp, {stack}
+            add  sp, sp, t0
+            add  sp, sp, s0
+
+            la   t0, __boot_page_table
+            srli t0, t0, 12
+            li   t1, 8 << 60
+            or   t0, t0, t1
+            csrw satp, t0
+            sfence.vma
+
             la  t1, _high_entry
-            add t1, t1, t0
-            add sp, sp, t0
-            add a1, a1, t0
+            add t1, t1, s0
             jr  t1
         ",
-        set_stack   = sym set_stack,
-        set_boot_page_table = sym set_boot_page_table,
+        stack = sym KERNEL_STACK,
         options(noreturn)
     )
 }
@@ -24,7 +35,7 @@ pub unsafe extern "C" fn _low_entry() -> ! {
 #[naked]
 #[no_mangle]
 #[link_section = ".text.entry"]
-unsafe extern "C" fn _high_entry(hartid: usize) -> ! {
+unsafe extern "C" fn _high_entry() -> ! {
     core::arch::asm!(
         "
             la   t0, kernel_main
@@ -38,53 +49,21 @@ global_asm!(
     "   .section .data
         .align 12
     __boot_page_table:
-        .quad (0x00000 << 10) | 0xcf
         .quad 0
-        .quad (0x80000 << 10) | 0xcf
+        .quad 0
+        .quad (0x80000 << 10) | 0xcf # 0x0000_0000_8000_0000
         .zero 8 * 507
-        .quad (0x80000 << 10) | 0xcf
+        .quad (0x80000 << 10) | 0xcf # 0xffff_ffff_8000_0000
         .quad 0
     "
 );
 
 #[repr(C, align(4096))]
-struct KernelStack([u8; 1 << 20 << 3]); // 8MiB stack
+struct KernelStack([u8; 1 << 18]); // 1MiB stack
 
 #[link_section = ".bss.stack"]
 static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; 8]> =
     core::mem::MaybeUninit::uninit();
-
-
-#[naked]
-unsafe extern "C" fn set_stack(hartid: usize) {
-    asm!(
-        "   add  t0, a0, 1
-            slli t0, t0, 20
-            la   sp, {stack}
-            add  sp, sp, t0
-            ret
-        ",
-        stack = sym KERNEL_STACK,
-        options(noreturn),
-    )
-}
-
-
-#[naked]
-unsafe extern "C" fn set_boot_page_table(hartid: usize) {
-    asm!(
-        "   la   t0, __boot_page_table
-            srli t0, t0, 12
-            li   t1, 8 << 60
-            or   t0, t0, t1
-            csrw satp, t0
-            sfence.vma
-            ret
-        ",
-        options(noreturn),
-    )
-
-}
 
 extern "C" {
     fn __boot_page_table();

@@ -1,9 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "kernel",
-    "sbi/*"
-    ]
+members = ["kernel", "crates/*"]
 
 [profile.dev]
 opt-level = 0
