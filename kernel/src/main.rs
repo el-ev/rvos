@@ -22,5 +22,6 @@ extern "C" fn kernel_main() -> ! {
     // unsafe {
 	// 	*(0x100000 as *mut u32) = 0x5555;
 	// }
-	sbi::reset::sbi_shutdown();
+	sbi::dbcn::sbi_debug_console_write(BANNER.as_ptr() as u64 - 0xFFFFFFFF00000000, BANNER.len() as u64);
+	sbi::reset::sbi_shutdown()
 }

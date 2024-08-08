@@ -4,6 +4,7 @@ use core::arch::asm;
 
 pub mod hsm;
 pub mod base;
+pub mod dbcn;
 pub mod legacy;
 pub mod reset;
 
@@ -40,22 +41,6 @@ pub fn sbi_call(eid: u64, fid: u64, arg0: u64, arg1: u64, arg2: u64) -> Sbiret {
         },
         value,
     }
-}
-
-#[inline(always)]
-pub fn sbi_call_legacy(eid: u64, arg0: u64, arg1: u64, arg2: u64) -> i64 {
-    let value : i64;
-    unsafe {
-        asm! {
-            "ecall",
-            in("x17") eid,
-            in("x10") arg0,
-            in("x11") arg1,
-            in("x12") arg2,
-            lateout("x10") value,
-        };
-    }
-    value
 }
 
 pub struct Sbiret {

@@ -1,4 +1,4 @@
-use crate::sbi_call_legacy;
+use core::arch::asm;
 
 const EID_SET_TIMER: u64 = 0x0;
 const EID_CONSOLE_PUTCHAR: u64 = 0x1;
@@ -27,3 +27,18 @@ pub fn sbi_shutdown() -> ! {
     unreachable!()
 }
 
+#[inline(always)]
+pub fn sbi_call_legacy(eid: u64, arg0: u64, arg1: u64, arg2: u64) -> i64 {
+    let value : i64;
+    unsafe {
+        asm! {
+            "ecall",
+            in("x17") eid,
+            in("x10") arg0,
+            in("x11") arg1,
+            in("x12") arg2,
+            lateout("x10") value,
+        };
+    }
+    value
+}

@@ -1,9 +1,11 @@
 use crate::{sbi_call, Sbiret};
 
-const SBI_EXT_RESET: u32 = 0x53525354;
+const SBI_EXT_RESET: u64 = 0x53525354;
 
-pub fn sbi_system_reset(reset_type: u32, reset_reason: u32) -> Sbiret {
-    sbi_call(SBI_EXT_RESET as u64, 0, reset_type as u64, reset_reason as u64,  0)
+const FID_SYSTEM_RESET: u64 = 0x0;
+
+pub fn sbi_system_reset(reset_type: u64, reset_reason: u64) -> Sbiret {
+    sbi_call(SBI_EXT_RESET, FID_SYSTEM_RESET, reset_type, reset_reason,  0)
 } 
 
 pub fn sbi_shutdown() -> ! {
