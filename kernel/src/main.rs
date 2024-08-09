@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(asm_const)]
 #![feature(naked_functions)]
 
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -8,10 +9,13 @@ use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
 use spin::Lazy;
 
+mod config;
 mod debug_console;
 mod entry;
 mod logging;
+mod mm;
 mod panic;
+mod utils;
 
 // Every custom kernel needs a banner
 const BANNER: &str = r#"
@@ -44,7 +48,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
             }
         }
     } else {
-        info!("Hart {} is running.", hartid);
+        info!("Hart {} has been started.", hartid);
         loop {
             core::hint::spin_loop();
         }
@@ -87,7 +91,7 @@ pub fn start_hart(hartid: usize) {
     )
     .error
     {
-        sbi::SbiError::Success => info!("Hart {} started successfully.", hartid),
+        sbi::SbiError::Success => info!("Hart {} started.", hartid),
         e => error!("Failed to start hart {}: {:?}", hartid, e),
     }
 }

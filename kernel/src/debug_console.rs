@@ -1,12 +1,13 @@
 use core::{fmt, fmt::Write};
 use sbi::dbcn::sbi_debug_console_write;
 
+use crate::config::KERNEL_OFFSET;
+
 pub struct DebugOut;
 
 impl fmt::Write for DebugOut {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        // TODO: const KERNEL_BASE: u64 = 0xFFFFFFFF00000000;
-        sbi_debug_console_write(s.as_ptr() as u64 - 0xFFFFFFFF00000000, s.len() as u64);
+        sbi_debug_console_write(s.as_ptr() as u64 - KERNEL_OFFSET as u64, s.len() as u64);
         Ok(())
     }
 }
