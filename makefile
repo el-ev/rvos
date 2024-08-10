@@ -20,7 +20,7 @@ BUILDARGS += --release
 endif
 
 QEMU_ARGS :=
-QEMU_ARGS += -smp 2
+QEMU_ARGS += -smp 8
 QEMU_ARGS += -m 2G
 QEMU_ARGS += -machine $(BOARD)
 QEMU_ARGS += -nographic
@@ -36,13 +36,13 @@ run: build
 
 debug: build kill
 	$(QEMU) $(QEMU_ARGS) -s -S & 
-	gdb-multiarch -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"
+	gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"
 
 objdump: build
 	$(OBJDUMP) -d $(KERNEL) > kernel.asm
 
 kill:
-	pkill qemu-system-riscv64 || true
+	killall $(QEMU)
 
 clean:
 	cargo clean

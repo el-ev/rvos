@@ -5,9 +5,9 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
+use config::KERNEL_OFFSET;
 use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
-use spin::Lazy;
 
 mod config;
 mod debug_console;
@@ -28,32 +28,31 @@ const BANNER: &str = r#"
                                                               
 "#;
 
-static INIT_RUN: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 #[no_mangle]
 extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
-	if INIT_RUN
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_ok()
-    {
-        clear_bss();
-        debug!("{}", BANNER);
-        logging::init();
-		info!("RVOS Started.");
-
-		#[cfg(feature = "smp")]
-        for i in 0..get_hart_count() {
-            if i != hartid {
+    clear_bss();
+    debug!("{}", BANNER);
+    logging::init();
+	info!("RVOS Started.");
+    info!("Hart {} has been started.", hartid);
+	#[cfg(feature = "smp")]
+    for i in 0..get_hart_count() {
+        if i != hartid {
 				start_hart(i);
             }
-        }
-    } else {
-        info!("Hart {} has been started.", hartid);
-        loop {
-            core::hint::spin_loop();
-        }
     }
-    panic!()
+    loop {
+        core::hint::spin_loop();
+    }
+}
+
+#[no_mangle]
+extern "C" fn parking(hartid: usize) -> ! {
+    info!("Hart {} has been started.", hartid);
+    loop {
+        core::hint::spin_loop();
+    }
 }
 
 fn clear_bss() {
@@ -83,15 +82,16 @@ pub fn get_hart_count() -> usize {
     hart_cnt
 }
 
+#[allow(unused)]
 pub fn start_hart(hartid: usize) {
     match sbi::hsm::sbi_hart_start(
         hartid as u64,
-        0x8020_0000,
+        entry::_second_boot as usize as u64 - KERNEL_OFFSET as u64,
         0,
     )
     .error
     {
-        sbi::SbiError::Success => info!("Hart {} started.", hartid),
+        sbi::SbiError::Success => (),
         e => error!("Failed to start hart {}: {:?}", hartid, e),
     }
 }

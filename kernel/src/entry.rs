@@ -26,6 +26,28 @@ pub unsafe extern "C" fn _low_entry() -> ! {
 
 #[naked]
 #[no_mangle]
+#[link_section = ".init.boot"]
+pub unsafe extern "C" fn _second_boot() -> ! {
+    asm!(
+        "   mv  tp, a0
+            li  s0, {kernel_offset}
+            add a1, a1, s0
+            call {set_stack}
+            add sp, sp, s0
+            call {set_boot_page_table}
+            la  t1, parking
+            add t1, t1, s0
+            jr  t1
+        ",
+        kernel_offset = const KERNEL_OFFSET,
+        set_stack   = sym set_stack,
+        set_boot_page_table = sym set_boot_page_table,
+        options(noreturn)
+    )
+}
+
+#[naked]
+#[no_mangle]
 #[link_section = ".text.entry"]
 unsafe extern "C" fn _high_entry() -> ! {
     core::arch::asm!(
