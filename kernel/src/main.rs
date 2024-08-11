@@ -3,7 +3,7 @@
 #![feature(asm_const)]
 #![feature(naked_functions)]
 
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::{ptr::write_bytes, sync::atomic::{AtomicBool, Ordering}};
 
 use config::KERNEL_OFFSET;
 use log::{error, info};
@@ -60,9 +60,13 @@ fn clear_bss() {
         fn __bss_start();
         fn __bss_end();
     }
-    (__bss_start as usize..__bss_end as usize).for_each(|addr| unsafe {
-        (addr as *mut u8).write_volatile(0);
-    });
+    unsafe {
+        write_bytes(
+            __bss_start as *mut u8,
+            0,
+            (__bss_end as usize - __bss_start as usize) as usize,
+        );
+    }
 }
 
 // TODO Move this to a separate module
