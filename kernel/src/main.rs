@@ -1,13 +1,15 @@
 #![no_std]
 #![no_main]
+#![feature(alloc_error_handler)]
 #![feature(asm_const)]
 #![feature(naked_functions)]
 
-use core::{ptr::write_bytes, sync::atomic::{AtomicBool, Ordering}};
+extern crate alloc;
+use core::ptr::write_bytes;
 
 use config::KERNEL_OFFSET;
 use log::{error, info};
-use sbi::hsm::sbi_hart_get_status;
+use sbi::{hsm::sbi_hart_get_status, reset::sbi_shutdown};
 
 mod config;
 mod debug_console;
@@ -18,29 +20,27 @@ mod panic;
 mod utils;
 
 // Every custom kernel needs a banner
-const BANNER: &str = r#"
-  _______      ______   _____ 
+const BANNER: &str = 
+r#"  _______      ______   _____ 
  |  __ \ \    / / __ \ / ____|
  | |__) \ \  / / |  | | (___  
  |  _  / \ \/ /| |  | |\___ \ 
  | | \ \  \  / | |__| |____) |
- |_|  \_\  \/   \____/|_____/ 
-                                                              
+ |_|  \_\  \/   \____/|_____/  
 "#;
-
 
 #[no_mangle]
 extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     clear_bss();
-    debug!("{}", BANNER);
     logging::init();
-	info!("RVOS Started.");
-    info!("Hart {} has been started.", hartid);
-	#[cfg(feature = "smp")]
+    debug!("{}", BANNER);
+    info!("RVOS Started.");
+    mm::init();
+    #[cfg(feature = "smp")]
     for i in 0..get_hart_count() {
         if i != hartid {
-				start_hart(i);
-            }
+            start_hart(i);
+        }
     }
     loop {
         core::hint::spin_loop();
@@ -48,8 +48,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
 }
 
 #[no_mangle]
-extern "C" fn parking(hartid: usize) -> ! {
-    info!("Hart {} has been started.", hartid);
+extern "C" fn parking(_hartid: usize) -> ! {
     loop {
         core::hint::spin_loop();
     }
@@ -69,7 +68,6 @@ fn clear_bss() {
     }
 }
 
-// TODO Move this to a separate module
 #[inline]
 pub fn get_hart_count() -> usize {
     let mut hart_cnt = 0;

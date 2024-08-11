@@ -13,7 +13,7 @@ impl fmt::Write for DebugOut {
 }
 
 pub fn _debug_print(args: fmt::Arguments<'_>) {
-    static LOCK: sync::SpinMutex<()> = sync::SpinMutex::new(());
+    static LOCK: sync::SpinNoIrqMutex<()> = sync::SpinNoIrqMutex::new(());
     let _lock = LOCK.lock();
     DebugOut.write_fmt(args).unwrap();
 }

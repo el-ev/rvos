@@ -39,31 +39,31 @@ impl Display for PhysAddr {
 }
 
 impl PhysAddr {
-    pub fn ceil(self) -> Self {
+    pub const fn ceil(self) -> Self {
         Self(round_up!(self.0, PAGE_SIZE))
     }
 
-    pub fn floor(self) -> Self {
+    pub const fn floor(self) -> Self {
         Self(self.0 & mask!(PAGE_SIZE))
     }
 
-    pub fn offset(self) -> usize {
+    pub const fn offset(self) -> usize {
         self.0 & mask!(PAGE_SIZE_BITS)
     }
 
-    pub fn ceil_page(self) -> PhysPageNum {
+    pub const fn ceil_page(self) -> PhysPageNum {
         PhysPageNum(round_up!(self.0, PAGE_SIZE) >> PAGE_SIZE_BITS)
     }
 
-    pub fn floor_page(self) -> PhysPageNum {
+    pub const fn floor_page(self) -> PhysPageNum {
         PhysPageNum(self.0 >> PAGE_SIZE_BITS)
     }
     
-    pub fn as_ptr<T>(self) -> *mut T {
+    pub const fn as_ptr<T>(self) -> *mut T {
         self.0 as *mut T
     }
 
-    pub fn as_mut_ptr<T>(self) -> *mut T {
+    pub const fn as_mut_ptr<T>(self) -> *mut T {
         self.0 as *mut T
     }
 }

@@ -1,7 +1,7 @@
 use log::warn;
 
-use phys::PhysAddr;
-use virt::VirtAddr;
+pub use phys::{PhysAddr, PhysPageNum};
+pub use virt::{VirtAddr, VirtPageNum};
 
 use super::consts::PAGE_SIZE;
 use crate::config::{KERNEL_VIRTUAL_MEMORY_START, KERNEL_OFFSET, MEMORY_SIZE, PHYSICAL_MEMORY_START};
@@ -26,23 +26,21 @@ pub fn kva2pa(va: VirtAddr) -> PhysAddr {
 
 
 impl PhysAddr {
-    pub unsafe fn as_slice(&self, len: usize) -> &[u8] {
-        let mapped_addr = pa2kva(*self);
+    pub unsafe fn as_slice(self, len: usize) -> &'static [u8] {
+        let mapped_addr = pa2kva(self);
         core::slice::from_raw_parts(mapped_addr.0 as *const u8, len)
     }
 
-    #[allow(clippy::mut_from_ref)]
-    pub unsafe fn as_mut_slice(&self, len: usize) -> &mut [u8] {
-        let mapped_addr = pa2kva(*self);
+    pub unsafe fn as_mut_slice(self, len: usize) -> &'static mut [u8] {
+        let mapped_addr = pa2kva(self);
         core::slice::from_raw_parts_mut(mapped_addr.0 as *mut u8, len)
     }
 
-    pub unsafe fn as_page_slice(&self) -> &[u8] {
+    pub unsafe fn as_page_slice(self) -> &'static [u8] {
         self.as_slice(PAGE_SIZE)
     }
 
-    #[allow(clippy::mut_from_ref)]
-    pub unsafe fn as_mut_page_slice(&self) -> &mut [u8] {
+    pub unsafe fn as_mut_page_slice(self) -> &'static mut [u8] {
         self.as_mut_slice(PAGE_SIZE)
     }
 }

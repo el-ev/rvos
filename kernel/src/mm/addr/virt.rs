@@ -68,13 +68,11 @@ impl VirtAddr {
         self.0 as *mut T
     }
 
-    #[allow(clippy::mut_from_ref)]
-    pub unsafe fn as_mut_page_slice(&self) -> &mut [u8] {
+    pub unsafe fn as_mut_page_slice(&self) -> &'static mut [u8] {
         self.as_mut_slice(PAGE_SIZE)
     }
     
-    #[allow(clippy::mut_from_ref)]
-    pub unsafe fn as_mut_slice(&self, len: usize) -> &mut [u8] {
+    pub unsafe fn as_mut_slice(&self, len: usize) -> &'static mut [u8] {
         core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
     }
 }

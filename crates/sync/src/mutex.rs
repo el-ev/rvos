@@ -1,26 +1,26 @@
-use core::{cell::UnsafeCell, fmt, hint::spin_loop, ops::{Deref, DerefMut}, sync::atomic::{AtomicBool, Ordering}};
+use core::{
+    cell::UnsafeCell, fmt, ops::{Deref, DerefMut}, sync::atomic::{AtomicBool, AtomicI32, Ordering}
+};
 
 use crate::MutexHelper;
 
 pub struct Mutex<T: ?Sized, H: MutexHelper> {
     _marker: core::marker::PhantomData<H>,
     lock: AtomicBool,
+    hartid: AtomicI32,
     data: UnsafeCell<T>,
 }
 
 unsafe impl<T: ?Sized + Send, H: MutexHelper> Sync for Mutex<T, H> {}
 unsafe impl<T: ?Sized + Send, H: MutexHelper> Send for Mutex<T, H> {}
 
-pub struct MutexGuard<'a, T: ?Sized + 'a, H: MutexHelper + 'a> {
-    mutex: &'a Mutex<T, H>,
-}
-
 impl<T, H: MutexHelper> Mutex<T, H> {
     pub const fn new(data: T) -> Self {
-        Mutex {
-            lock: AtomicBool::new(false),
-            data: UnsafeCell::new(data),
+        Self {
             _marker: core::marker::PhantomData,
+            lock: AtomicBool::new(false),
+            hartid: AtomicI32::new(-1),
+            data: UnsafeCell::new(data),
         }
     }
 
@@ -30,88 +30,90 @@ impl<T, H: MutexHelper> Mutex<T, H> {
 }
 
 impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
-    fn is_locked(&self) -> bool {
-        self.lock.load(Ordering::Relaxed)
-    }
-
     pub fn lock(&self) -> MutexGuard<T, H> {
-        H::before_lock();
+        let helper_data = H::before_lock();
+        let hartid = arch::get_hart_id() as i32;
         while self
             .lock
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {
-            while self.is_locked() {
-                spin_loop();
+            let old_hartid = self.hartid.load(Ordering::Relaxed);
+            if old_hartid == hartid {
+                panic!("Deadlock. Hart {} is trying to lock a mutex it already owns", hartid);
+            }
+            let mut i = 0;
+            while self.lock.load(Ordering::Relaxed) {
+                H::cpu_relax();
+                i += 1;
+                if i  == 0x100_000 {
+                    panic!("Deadlock. Hart {} is trying to lock a mutex owned by hart {}", hartid, old_hartid);
+                }
             }
         }
-        H::after_lock();
-        MutexGuard { mutex: self }
+        self.hartid.store(hartid, Ordering::Relaxed);
+        MutexGuard {
+            mutex: self,
+            helper_data,
+        }
     }
 
     pub fn try_lock(&self) -> Option<MutexGuard<T, H>> {
-        H::before_lock();
+        let helper_data = H::before_lock();
+        let hartid = arch::get_hart_id() as i32;
         if self
             .lock
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
-            H::after_lock();
-            Some(MutexGuard { mutex: self })
+            self.hartid.store(hartid, Ordering::Relaxed);
+            Some(MutexGuard {
+                mutex: self,
+                helper_data,
+            })
         } else {
-            H::after_lock();
             None
         }
     }
-
-    /// # Safety
-    /// unsafe.
-    pub unsafe fn force_unlock(&self) {
-        self.lock.store(false, Ordering::Release);
-    }
 }
 
-impl<T: ?Sized + fmt::Debug, H: MutexHelper> fmt::Debug for Mutex<T, H> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.try_lock() {
-            Some(guard) => {
-                f.debug_struct("Mutex")
-                    .field("data", &&*guard)
-                    .finish()
-            }
-            None => {
-                struct LockedPlaceholder;
-                impl fmt::Debug for LockedPlaceholder {
-                    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                        f.write_str("<locked>")
-                    }
-                }
-                f.debug_struct("Mutex")
-                    .field("data", &LockedPlaceholder)
-                    .finish()
-            }
-        }
+pub struct MutexGuard<'a, T: ?Sized + 'a, H: MutexHelper + 'a> {
+    pub(crate) mutex: &'a Mutex<T, H>,
+    helper_data: H::HelperData,
+}
+
+impl<'a, T: ?Sized, H: MutexHelper> Drop for MutexGuard<'a, T, H> {
+    fn drop(&mut self) {
+        self.mutex.lock.store(false, Ordering::Release);
+        H::after_lock(&self.helper_data);
     }
 }
 
 impl<'a, T: ?Sized, H: MutexHelper> Deref for MutexGuard<'a, T, H> {
     type Target = T;
 
-    fn deref(&self) -> &T {
+    fn deref(&self) -> &Self::Target {
         unsafe { &*self.mutex.data.get() }
     }
 }
 
 impl<'a, T: ?Sized, H: MutexHelper> DerefMut for MutexGuard<'a, T, H> {
-    fn deref_mut(&mut self) -> &mut T {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.mutex.data.get() }
     }
 }
 
-impl<'a, T: ?Sized, H: MutexHelper> Drop for MutexGuard<'a, T, H> {
-    fn drop(&mut self) {
-        unsafe {
-            self.mutex.force_unlock();
+impl<T: fmt::Debug, H: MutexHelper> fmt::Debug for Mutex<T, H> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.try_lock() {
+            Some(guard) => write!(f, "Mutex {{ data: {:?} }}", &*guard),
+            None => write!(f, "Mutex {{ <locked> }}"),
         }
+    }
+}
+
+impl<T: fmt::Debug, H: MutexHelper> fmt::Debug for MutexGuard<'_, T, H> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", &**self)
     }
 }

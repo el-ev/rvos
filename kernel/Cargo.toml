@@ -7,8 +7,11 @@ authors = ["Qin-shihuang <0.0@owo.li>"]
 [dependencies]
 sbi = { path = "../crates/sbi" }
 sync = { path = "../crates/sync" }
+allocator = { path = "../crates/allocator" }
 
+bitflags = "2.6.0"
 log = "0.4.14"
+riscv = "0.11.1"
 
 [features]
 default = ["smp"]

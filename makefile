@@ -31,18 +31,19 @@ QEMU_ARGS += -kernel $(KERNEL)
 build:
 	cd kernel && cargo build $(BUILDARGS)
 
-run: build
+run: build kill
 	$(QEMU) $(QEMU_ARGS)
 
 debug: build kill
 	$(QEMU) $(QEMU_ARGS) -s -S & 
 	gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"
+	killall $(QEMU)
 
 objdump: build
 	$(OBJDUMP) -d $(KERNEL) > kernel.asm
 
 kill:
-	killall $(QEMU)
+	killall $(QEMU) || true
 
 clean:
 	cargo clean

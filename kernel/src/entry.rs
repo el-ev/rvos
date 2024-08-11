@@ -1,6 +1,6 @@
-use core::arch::{asm, global_asm};
+use core::arch::asm;
 
-use crate::config::{KERNEL_OFFSET, CPU_NUM};
+use crate::{config::{CPU_NUM, KERNEL_OFFSET}, mm::{addr::PhysAddr, paging::pte::{PageTableEntry, PteFlags}}};
 
 #[naked]
 #[no_mangle]
@@ -59,23 +59,15 @@ unsafe extern "C" fn _high_entry() -> ! {
     )
 }
 
-extern "C" {
-    fn __boot_page_table();
-}
-
-// TODO Replace with a real page table struct
-global_asm!(
-    "   .section .data
-        .align 12
-    __boot_page_table:
-        .quad 0
-        .quad 0
-        .quad (0x80000 << 10) | 0xcf # 0x0000_0000_8000_0000
-        .zero 8 * 505
-        .quad (0x80000 << 10) | 0xcf # 0xffff_ffff_8000_0000
-        .zero 8 * 3
-    "
-);
+#[link_section = ".data.boot_page_table"]
+static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
+    let mut table = [PageTableEntry::EMPTY; 512];
+    let pa = PhysAddr(0x8000_0000);
+    let flags = PteFlags::from_bits_truncate(0xcf); // VRWXAD
+    table[2] = PageTableEntry::new(pa, flags);
+    table[508] = PageTableEntry::new(pa, flags);
+    table
+};
 
 #[repr(C, align(4096))]
 struct KernelStack([u8; 1 << 20]); // 1MiB stack
@@ -103,7 +95,7 @@ unsafe extern "C" fn set_stack(hartid: usize) {
 #[naked]
 unsafe extern "C" fn set_boot_page_table(hartid: usize) {
     asm!(
-        "   la   t0, __boot_page_table
+        "   la   t0, {boot_page_table}
             srli t0, t0, 12
             li   t1, 8 << 60
             or   t0, t0, t1
@@ -111,6 +103,7 @@ unsafe extern "C" fn set_boot_page_table(hartid: usize) {
             sfence.vma
             ret
         ",
+        boot_page_table = sym BOOT_PAGE_TABLE,
         options(noreturn),
     )
 

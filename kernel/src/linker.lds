@@ -34,6 +34,7 @@ SECTIONS
     __rodata_end = .;
     __data_start = .;
     .data : {
+        *(.data.boot_page_table)
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
@@ -42,7 +43,7 @@ SECTIONS
     __data_end = .;
     .bss : {
         *(.bss.stack)
-         __bss_start = .;
+        __bss_start = .;
 
         *(.bss .bss.*)
         *(.sbss .sbss.*)
@@ -50,14 +51,5 @@ SECTIONS
 
     . = ALIGN(4K);
     __bss_end = .;
-
-    __eh_frame = .;
-    .eh_frame : { 
-        *(.eh_frame.*) 
-    }
-    .eh_frame_hdr : {
-        *(.eh_frame_hdr.*)
-    }
-    . = ALIGN(4K);
     __kernel_end = .;
 }

@@ -1,14 +1,17 @@
 #![no_std]
-#![feature(const_trait_impl)]
 
+mod lazy;
 pub mod mutex;
+mod spin;
 
-pub type SpinMutex<T> = mutex::Mutex<T, DummyHelper>;
+pub use lazy::Lazy;
+
+pub type SpinMutex<T> = mutex::Mutex<T, spin::SpinHelper>;
+pub type SpinNoIrqMutex<T> = mutex::Mutex<T, spin::SpinNoIrqHelper>;
 
 pub trait MutexHelper {
-    fn before_lock() {}
-    fn after_lock() {}
+    type HelperData;
+    fn cpu_relax();
+    fn before_lock() -> Self::HelperData;
+    fn after_lock(helper_data: &Self::HelperData);
 }
-
-pub struct DummyHelper;
-impl MutexHelper for DummyHelper {}
