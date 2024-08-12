@@ -2,17 +2,16 @@
 #![allow(dead_code)]
 use core::arch::asm;
 
-pub mod hsm;
 pub mod base;
 pub mod dbcn;
+pub mod hsm;
 pub mod legacy;
 pub mod reset;
 
-
 #[inline(always)]
 pub fn sbi_call(eid: u64, fid: u64, arg0: u64, arg1: u64, arg2: u64) -> Sbiret {
-    let error : i64;
-    let value : u64;
+    let error: i64;
+    let value: u64;
     unsafe {
         asm! {
             "ecall",
@@ -59,7 +58,7 @@ pub enum SbiError {
     ErrAlreadyAvailable = -6,
     ErrAlreadyStarted = -7,
     ErrAlreadyStopped = -8,
-    ErrNoShrem = -9
+    ErrNoShrem = -9,
 }
 impl Sbiret {
     pub fn is_success(&self) -> bool {

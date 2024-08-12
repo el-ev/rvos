@@ -1,5 +1,8 @@
 use core::{
-    cell::UnsafeCell, fmt, ops::{Deref, DerefMut}, sync::atomic::{AtomicBool, AtomicI32, Ordering}
+    cell::UnsafeCell,
+    fmt,
+    ops::{Deref, DerefMut},
+    sync::atomic::{AtomicBool, AtomicI32, Ordering},
 };
 
 use crate::MutexHelper;
@@ -40,14 +43,20 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         {
             let old_hartid = self.hartid.load(Ordering::Relaxed);
             if old_hartid == hartid {
-                panic!("Deadlock. Hart {} is trying to lock a mutex it already owns", hartid);
+                panic!(
+                    "Deadlock. Hart {} is trying to lock a mutex it already owns",
+                    hartid
+                );
             }
             let mut i = 0;
             while self.lock.load(Ordering::Relaxed) {
                 H::cpu_relax();
                 i += 1;
-                if i  == 0x100_000 {
-                    panic!("Deadlock. Hart {} is trying to lock a mutex owned by hart {}", hartid, old_hartid);
+                if i == 0x100_000 {
+                    panic!(
+                        "Deadlock. Hart {} is trying to lock a mutex owned by hart {}",
+                        hartid, old_hartid
+                    );
                 }
             }
         }

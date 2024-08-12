@@ -1,7 +1,13 @@
-use core::{fmt::{self, Display}, ops::{Add, AddAssign, Sub, SubAssign}};
+use core::{
+    fmt::{self, Display},
+    ops::{Add, AddAssign, Sub, SubAssign},
+};
 
-
-use crate::{mask, mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, PA_WIDTH}, round_up};
+use crate::{
+    mask,
+    mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, PA_WIDTH},
+    round_up,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PhysAddr(pub usize);
@@ -58,7 +64,7 @@ impl PhysAddr {
     pub const fn floor_page(self) -> PhysPageNum {
         PhysPageNum(self.0 >> PAGE_SIZE_BITS)
     }
-    
+
     pub const fn as_ptr<T>(self) -> *mut T {
         self.0 as *mut T
     }

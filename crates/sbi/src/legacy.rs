@@ -29,7 +29,7 @@ pub fn sbi_shutdown() -> ! {
 
 #[inline(always)]
 pub fn sbi_call_legacy(eid: u64, arg0: u64, arg1: u64, arg2: u64) -> i64 {
-    let value : i64;
+    let value: i64;
     unsafe {
         asm! {
             "ecall",

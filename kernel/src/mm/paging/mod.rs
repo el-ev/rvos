@@ -2,8 +2,8 @@ use log::debug;
 
 use crate::entry::BOOT_PAGE_TABLE;
 
-use super::consts::PAGE_SIZE;
 use super::addr::PhysPageNum;
+use super::consts::PAGE_SIZE;
 
 pub mod page_table;
 pub mod pte;

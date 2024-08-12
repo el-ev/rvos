@@ -22,5 +22,4 @@ pub const PTEFLAGS_MASK: usize = mask!(PTEFLAGS_BITS);
 
 pub const PTE_PPN_MASK: usize = ((1usize << 54) - 1) & !PTEFLAGS_MASK;
 
-
 pub const PAGE_TABLE_ENTRY_COUNT: usize = 512;

@@ -1,7 +1,13 @@
-use core::{fmt::{self, Display}, ops::{Add, AddAssign, Sub, SubAssign}};
+use core::{
+    fmt::{self, Display},
+    ops::{Add, AddAssign, Sub, SubAssign},
+};
 
-use crate::{mask, mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, VA_WIDTH}, round_up};
-
+use crate::{
+    mask,
+    mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, VA_WIDTH},
+    round_up,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VirtAddr(pub usize);
@@ -38,7 +44,6 @@ impl Display for VirtAddr {
     }
 }
 
-
 impl VirtAddr {
     pub fn ceil(self) -> Self {
         Self(round_up!(self.0, PAGE_SIZE))
@@ -59,7 +64,7 @@ impl VirtAddr {
     pub fn floor_page(self) -> VirtPageNum {
         VirtPageNum(self.0 >> PAGE_SIZE_BITS)
     }
-    
+
     pub fn as_ptr<T>(self) -> *mut T {
         self.0 as *mut T
     }
@@ -71,7 +76,7 @@ impl VirtAddr {
     pub unsafe fn as_mut_page_slice(&self) -> &'static mut [u8] {
         self.as_mut_slice(PAGE_SIZE)
     }
-    
+
     pub unsafe fn as_mut_slice(&self, len: usize) -> &'static mut [u8] {
         core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
     }

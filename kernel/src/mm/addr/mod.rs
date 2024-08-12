@@ -4,11 +4,12 @@ pub use phys::{PhysAddr, PhysPageNum};
 pub use virt::{VirtAddr, VirtPageNum};
 
 use super::consts::PAGE_SIZE;
-use crate::config::{KERNEL_VIRTUAL_MEMORY_START, KERNEL_OFFSET, MEMORY_SIZE, PHYSICAL_MEMORY_START};
+use crate::config::{
+    KERNEL_OFFSET, KERNEL_VIRTUAL_MEMORY_START, MEMORY_SIZE, PHYSICAL_MEMORY_START,
+};
 
 mod phys;
 mod virt;
-
 
 pub fn pa2kva(pa: PhysAddr) -> VirtAddr {
     if !(PHYSICAL_MEMORY_START..PHYSICAL_MEMORY_START + MEMORY_SIZE).contains(&pa.0) {
@@ -23,7 +24,6 @@ pub fn kva2pa(va: VirtAddr) -> PhysAddr {
     }
     PhysAddr(va.0 - KERNEL_OFFSET)
 }
-
 
 impl PhysAddr {
     pub unsafe fn as_slice(self, len: usize) -> &'static [u8] {

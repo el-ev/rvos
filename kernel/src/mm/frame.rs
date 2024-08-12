@@ -33,7 +33,6 @@ impl Drop for FrameTracker {
     }
 }
 
-
 pub struct FrameAllocator<const ORDER: usize> {
     free_list: [Vec<PhysPageNum>; ORDER],
     total: usize,

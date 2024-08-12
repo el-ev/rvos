@@ -7,7 +7,6 @@ const FID_HART_STOP: u64 = 1;
 const FID_HART_GET_STATUS: u64 = 2;
 const FID_HART_SUSPEND: u64 = 3;
 
-
 pub fn sbi_hart_start(hartid: u64, start_addr: u64, opaque: u64) -> Sbiret {
     sbi_call(EID_BASE, FID_HART_START, hartid, start_addr, opaque)
 }

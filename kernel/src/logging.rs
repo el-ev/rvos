@@ -11,7 +11,7 @@ impl Log for Logger {
 
     fn log(&self, record: &Record) {
         if !self.enabled(record.metadata()) {
-            return; 
+            return;
         }
         let color = match record.level() {
             Level::Error => "31", // red
@@ -57,4 +57,3 @@ pub fn init() {
         }
     });
 }
- 

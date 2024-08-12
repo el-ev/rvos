@@ -12,7 +12,7 @@ use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
 
 #[cfg(feature = "qemu")]
-#[path ="board/qemu/mod.rs"]
+#[path = "board/qemu/mod.rs"]
 mod board;
 
 mod config;
@@ -28,8 +28,7 @@ mod utils;
 static STARTED_HART: AtomicU8 = AtomicU8::new(0);
 
 // Every custom kernel needs a banner
-const BANNER: &str = 
-r#"  _______      ______   _____ 
+const BANNER: &str = r#"  _______      ______   _____ 
  |  __ \ \    / / __ \ / ____|
  | |__) \ \  / / |  | | (___  
  |  _  / \ \/ /| |  | |\___ \ 
