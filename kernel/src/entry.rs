@@ -1,11 +1,17 @@
 use core::arch::asm;
 
-use crate::{config::{CPU_NUM, KERNEL_OFFSET}, mm::{addr::PhysAddr, paging::pte::{PageTableEntry, PteFlags}}};
+use crate::{
+    config::{CPU_NUM, KERNEL_OFFSET},
+    mm::{
+        addr::{PhysAddr, PhysPageNum},
+        paging::pte::{PageTableEntry, PteFlags},
+    },
+};
 
 #[naked]
 #[no_mangle]
 #[link_section = ".init.boot"]
-pub unsafe extern "C" fn _low_entry() -> ! {
+unsafe extern "C" fn _low_entry() -> ! {
     asm!(
         "   mv  tp, a0
             li  s0, {kernel_offset}
@@ -60,12 +66,12 @@ unsafe extern "C" fn _high_entry() -> ! {
 }
 
 #[link_section = ".data.boot_page_table"]
-static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
+pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
     let mut table = [PageTableEntry::EMPTY; 512];
-    let pa = PhysAddr(0x8000_0000);
+    let ppn = PhysPageNum(0x80000);
     let flags = PteFlags::from_bits_truncate(0xcf); // VRWXAD
-    table[2] = PageTableEntry::new(pa, flags);
-    table[508] = PageTableEntry::new(pa, flags);
+    table[2] = PageTableEntry::new(ppn, flags);   // 0x0000_0000_8000_0000
+    table[508] = PageTableEntry::new(ppn, flags); // 0xffff_ffff_0000_0000
     table
 };
 
@@ -75,7 +81,6 @@ struct KernelStack([u8; 1 << 20]); // 1MiB stack
 #[link_section = ".bss.stack"]
 static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; CPU_NUM]> =
     core::mem::MaybeUninit::uninit();
-
 
 #[naked]
 unsafe extern "C" fn set_stack(hartid: usize) {
@@ -91,7 +96,6 @@ unsafe extern "C" fn set_stack(hartid: usize) {
     )
 }
 
-
 #[naked]
 unsafe extern "C" fn set_boot_page_table(hartid: usize) {
     asm!(
@@ -106,6 +110,4 @@ unsafe extern "C" fn set_boot_page_table(hartid: usize) {
         boot_page_table = sym BOOT_PAGE_TABLE,
         options(noreturn),
     )
-
 }
-

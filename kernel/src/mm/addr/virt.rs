@@ -3,7 +3,7 @@ use core::{fmt::{self, Display}, ops::{Add, AddAssign, Sub, SubAssign}};
 use crate::{mask, mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, VA_WIDTH}, round_up};
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VirtAddr(pub usize);
 
 impl Add<usize> for VirtAddr {
@@ -77,7 +77,7 @@ impl VirtAddr {
     }
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
 
 impl Add<usize> for VirtPageNum {

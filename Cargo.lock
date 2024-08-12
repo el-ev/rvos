@@ -39,6 +39,7 @@ name = "kernel"
 version = "0.1.0"
 dependencies = [
  "allocator",
+ "arch",
  "bitflags",
  "log",
  "riscv",

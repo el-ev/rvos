@@ -1,18 +1,38 @@
-use core::{fmt, ptr::write};
+use core::fmt;
 
 use alloc::vec::Vec;
-use sync::{SpinNoIrqMutex, Lazy};
 use log::{info, warn};
+use sync::SpinNoIrqMutex;
 
-use crate::{prev_pow_of_2, debug, debugln};
+use crate::prev_pow_of_2;
 
-use super::{addr::{PhysAddr, PhysPageNum}, consts::FRAME_SIZE};
+use super::{
+    addr::{PhysAddr, PhysPageNum},
+    consts::FRAME_SIZE,
+};
 
 const ORDER: usize = 32;
 
-pub static FRAME_ALLOCATOR: Lazy<SpinNoIrqMutex<FrameAllocator<ORDER>>> = Lazy::new(|| {
-    SpinNoIrqMutex::new(FrameAllocator::new())
-});
+pub static FRAME_ALLOCATOR: SpinNoIrqMutex<FrameAllocator<ORDER>> =
+    SpinNoIrqMutex::new(FrameAllocator::new());
+
+#[derive(Debug, Clone)]
+pub struct FrameTracker {
+    pub ppn: PhysPageNum,
+}
+
+impl FrameTracker {
+    pub fn new(ppn: PhysPageNum) -> Self {
+        FrameTracker { ppn }
+    }
+}
+
+impl Drop for FrameTracker {
+    fn drop(&mut self) {
+        dealloc(self.ppn);
+    }
+}
+
 
 pub struct FrameAllocator<const ORDER: usize> {
     free_list: [Vec<PhysPageNum>; ORDER],
@@ -71,12 +91,9 @@ impl<const ORDER: usize> FrameAllocator<ORDER> {
         None
     }
 
-    pub fn dealloc(&mut self, start: PhysPageNum, size: usize) {
-        debug_assert!(size.is_power_of_two());
-        debug_assert!(start.0 & (size - 1) == 0);
-        let order = size.trailing_zeros() as usize;
-        let mut ppn = start;
-        let mut order = order;
+    pub fn dealloc(&mut self, frame: PhysPageNum) {
+        let mut ppn = frame;
+        let mut order = 0;
         while order < ORDER - 1 {
             let buddy = PhysPageNum(ppn.0 ^ (1 << order));
             let mut found = false;
@@ -95,7 +112,7 @@ impl<const ORDER: usize> FrameAllocator<ORDER> {
             }
         }
         self.free_list[order].push(ppn);
-        self.allocated -= size;
+        self.allocated -= 1;
     }
 }
 
@@ -116,7 +133,7 @@ impl fmt::Debug for FrameAllocator<ORDER> {
             }
         }
         writeln!(f, "  ]")?;
-        writeln!(f, "}}") 
+        writeln!(f, "}}")
     }
 }
 
@@ -137,28 +154,28 @@ pub fn init(start: PhysAddr, end: PhysAddr) {
     );
 }
 
-pub fn alloc_frames(size: usize, align: usize) -> Option<PhysPageNum> {
-    let frame = FRAME_ALLOCATOR
-        .lock()
-        .alloc(size, align);
+pub fn alloc_frames(size: usize, align: usize) -> Option<Vec<FrameTracker>> {
+    let frame = FRAME_ALLOCATOR.lock().alloc(size, align);
     if let Some(frame) = frame {
         unsafe {
             clear_frame(frame, size);
         }
     } else {
-        warn!("Failed to allocate {} frames with alignment {}.", size, align);
+        warn!(
+            "Failed to allocate {} frames with alignment {}.",
+            size, align
+        );
     }
-    frame
+    frame.map(|frame| {
+        (0..size)
+            .map(|i| FrameTracker::new(PhysPageNum(frame.0 + i)))
+            .collect()
+    })
 }
-
-pub fn dealloc_frames(start: PhysPageNum, size: usize) {
-    FRAME_ALLOCATOR.lock().dealloc(start, size);
-}
-
-pub fn alloc() -> Option<PhysPageNum> {
-    alloc_frames(1, 1)
+pub fn alloc() -> Option<FrameTracker> {
+    alloc_frames(1, 1).map(|mut v| v.pop().unwrap())
 }
 
 pub fn dealloc(frame: PhysPageNum) {
-    dealloc_frames(frame, 1);
+    FRAME_ALLOCATOR.lock().dealloc(frame);
 }

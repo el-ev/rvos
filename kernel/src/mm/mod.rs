@@ -8,7 +8,7 @@ pub mod addr;
 pub mod consts;
 mod frame;
 mod heap;
-// mod frame;
+pub mod layout;
 pub mod paging;
 
 extern "C" {
@@ -22,5 +22,6 @@ pub fn init() {
         kva2pa(VirtAddr(__kernel_end as usize)),
         PhysAddr(PHYSICAL_MEMORY_START + MEMORY_SIZE),
     );
-    frame::debug_print();
+    layout::print_memory_layout();
+    // frame::debug_print();
 }

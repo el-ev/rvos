@@ -3,6 +3,7 @@ use sbi::dbcn::sbi_debug_console_write;
 
 use crate::config::KERNEL_OFFSET;
 
+// TODO: this is ugly
 pub struct DebugOut;
 
 impl fmt::Write for DebugOut {

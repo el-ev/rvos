@@ -42,13 +42,13 @@ pub struct PageTableEntry {
 }
 
 impl PageTableEntry {
-    pub const fn new(addr: PhysAddr, flags: PteFlags) -> Self {
+    pub const fn new(ppn: PhysPageNum, flags: PteFlags) -> Self {
         Self {
-            bits: ((addr.floor().0 >> 2) & PTE_PPN_MASK) | flags.bits() as usize,
+            bits: ppn.0 << 10 | flags.bits() as usize,
         }
     }
 
-    pub const EMPTY : Self = Self { bits: 0 };
+    pub const EMPTY: Self = Self { bits: 0 };
 
     pub fn clear(&mut self) {
         self.bits = 0;
@@ -64,6 +64,38 @@ impl PageTableEntry {
 
     pub fn flags(&self) -> PteFlags {
         PteFlags::from_bits_truncate((self.bits & PTEFLAGS_MASK) as u16)
+    }
+
+    pub fn valid(&self) -> bool {
+        self.flags().contains(PteFlags::V)
+    }
+
+    pub fn readable(&self) -> bool {
+        self.flags().contains(PteFlags::R)
+    }
+
+    pub fn writable(&self) -> bool {
+        self.flags().contains(PteFlags::W)
+    }
+
+    pub fn executable(&self) -> bool {
+        self.flags().contains(PteFlags::X)
+    }
+
+    pub fn user(&self) -> bool {
+        self.flags().contains(PteFlags::U)
+    }
+
+    pub fn accessed(&self) -> bool {
+        self.flags().contains(PteFlags::A)
+    }
+
+    pub fn dirty(&self) -> bool {
+        self.flags().contains(PteFlags::D)
+    }
+
+    pub fn global(&self) -> bool {
+        self.flags().contains(PteFlags::G)
     }
 }
 

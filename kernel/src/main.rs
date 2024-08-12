@@ -5,11 +5,15 @@
 #![feature(naked_functions)]
 
 extern crate alloc;
-use core::ptr::write_bytes;
+use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
 use config::KERNEL_OFFSET;
 use log::{error, info};
-use sbi::{hsm::sbi_hart_get_status, reset::sbi_shutdown};
+use sbi::hsm::sbi_hart_get_status;
+
+#[cfg(feature = "qemu")]
+#[path ="board/qemu/mod.rs"]
+mod board;
 
 mod config;
 mod debug_console;
@@ -17,7 +21,11 @@ mod entry;
 mod logging;
 mod mm;
 mod panic;
+mod timer;
+mod trap;
 mod utils;
+
+static STARTED_HART: AtomicU8 = AtomicU8::new(0);
 
 // Every custom kernel needs a banner
 const BANNER: &str = 
@@ -35,7 +43,10 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     logging::init();
     debug!("{}", BANNER);
     info!("RVOS Started.");
+    STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
+    trap::set_kernel_trap();
+    timer::init();
     #[cfg(feature = "smp")]
     for i in 0..get_hart_count() {
         if i != hartid {
@@ -44,11 +55,17 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     }
     loop {
         core::hint::spin_loop();
+        if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
+            mm::paging::unmap_low_memory();
+            break;
+        }
     }
+    panic!()
 }
 
 #[no_mangle]
 extern "C" fn parking(_hartid: usize) -> ! {
+    STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     loop {
         core::hint::spin_loop();
     }
