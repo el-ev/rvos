@@ -1,6 +1,6 @@
 use log::{Level, LevelFilter, Log, Metadata, Record};
 
-use crate::debugln;
+use crate::println;
 
 struct Logger;
 
@@ -20,7 +20,7 @@ impl Log for Logger {
             Level::Debug => "32", // green
             Level::Trace => "90", // gray
         };
-        debugln!(
+        println!(
             "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
             color,
             record.file().unwrap_or("unknown"),
@@ -38,7 +38,7 @@ pub fn init() {
     match log::set_logger(&LOGGER) {
         Ok(_) => {}
         Err(e) => {
-            debugln!("Failed to set logger: {}", e);
+            println!("Failed to set logger: {}", e);
             return;
         }
     }

@@ -7,20 +7,20 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
+use alloc::boxed::Box;
 use config::KERNEL_OFFSET;
+use drivers::serial::uart::Uart;
 use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
 
-#[cfg(feature = "qemu")]
-#[path = "board/qemu/mod.rs"]
-mod board;
-
 mod config;
-mod debug_console;
+mod console;
+mod drivers;
 mod entry;
 mod logging;
 mod mm;
 mod panic;
+mod task;
 mod timer;
 mod trap;
 mod utils;
@@ -40,7 +40,7 @@ const BANNER: &str = r#"  _______      ______   _____
 extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     clear_bss();
     logging::init();
-    debug!("{}", BANNER);
+    print!("{}", BANNER);
     info!("RVOS Started.");
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
@@ -55,9 +55,17 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     loop {
         core::hint::spin_loop();
         if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
-            mm::paging::unmap_low_memory();
+            // TODO: Enable when we have device memory region
+            // mm::paging::unmap_low_memory();
             break;
         }
+    }
+    println!("Switch to custom print");
+    console::CONSOLE.init();
+    console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
+    println!("UART initialized");
+    loop {
+        core::hint::spin_loop();
     }
     panic!()
 }
@@ -66,7 +74,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
 extern "C" fn parking(_hartid: usize) -> ! {
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     loop {
-        core::hint::spin_loop();
+        arch::wfi();
     }
 }
 
