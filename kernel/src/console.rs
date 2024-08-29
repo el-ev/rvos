@@ -10,6 +10,7 @@ use crate::{config::KERNEL_OFFSET, drivers::serial::uart::Uart};
 use crate::drivers::serial::ConsoleDevice;
 
 static PRINT_LOCK: sync::SpinNoIrqMutex<()> = sync::SpinNoIrqMutex::new(());
+// TODO Device Tree
 pub static CONSOLE: Lazy<Box<dyn ConsoleDevice + Send + Sync>> = Lazy::new(|| {
     let uart = Uart::new(0x1000_0000, 0x0038_4000, 115200, 1, 0);
     Box::new(uart)

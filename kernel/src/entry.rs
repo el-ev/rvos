@@ -70,8 +70,8 @@ pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
     let mut table = [PageTableEntry::EMPTY; 512];
     let ppn = PhysPageNum(0x80000);
     let flags = PteFlags::from_bits_truncate(0xcf); // VRWXAD
-    // device
-    table[0] = PageTableEntry::new(PhysPageNum(0x0), PteFlags::from_bits_truncate(0b111));
+    // TODO Map device to high memory
+    table[0] = PageTableEntry::new(PhysPageNum(0x0), flags);
     table[2] = PageTableEntry::new(ppn, flags); // 0x0000_0000_8000_0000
     table[508] = PageTableEntry::new(ppn, flags); // 0xffff_ffff_0000_0000
     table

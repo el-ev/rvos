@@ -7,9 +7,7 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use alloc::boxed::Box;
 use config::KERNEL_OFFSET;
-use drivers::serial::uart::Uart;
 use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
 
@@ -60,13 +58,9 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
             break;
         }
     }
-    println!("Switch to custom print");
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
-    println!("UART initialized");
-    loop {
-        core::hint::spin_loop();
-    }
+    info!("Switched to custom uart driver.");
     panic!()
 }
 

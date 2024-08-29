@@ -1,4 +1,4 @@
-use core::ptr::addr_of;
+#![allow(unused)]
 
 use addr::{kva2pa, PhysAddr, VirtAddr};
 

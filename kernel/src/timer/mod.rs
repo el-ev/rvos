@@ -1,8 +1,9 @@
+#![allow(unused)]
+
 mod consts;
 
 use core::cell::Cell;
 
-use alloc::boxed::Box;
 use log::info;
 use riscv::register::{sie, sstatus, time};
 use sbi::legacy::sbi_set_timer;

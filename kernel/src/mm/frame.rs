@@ -38,6 +38,7 @@ pub struct FrameAllocator<const ORDER: usize> {
     total: usize,
     allocated: usize,
 }
+
 impl<const ORDER: usize> FrameAllocator<ORDER> {
     const fn new() -> Self {
         FrameAllocator {
@@ -171,6 +172,7 @@ pub fn alloc_frames(size: usize, align: usize) -> Option<Vec<FrameTracker>> {
             .collect()
     })
 }
+
 pub fn alloc() -> Option<FrameTracker> {
     alloc_frames(1, 1).map(|mut v| v.pop().unwrap())
 }
