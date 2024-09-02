@@ -1,13 +1,13 @@
+use alloc::boxed::Box;
 use core::{
     fmt::{self, Write},
     sync::atomic::{AtomicBool, Ordering},
 };
-use alloc::boxed::Box;
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::{config::KERNEL_OFFSET, drivers::serial::uart::Uart};
 use crate::drivers::serial::ConsoleDevice;
+use crate::{config::KERNEL_OFFSET, drivers::serial::uart::Uart};
 
 static PRINT_LOCK: sync::SpinNoIrqMutex<()> = sync::SpinNoIrqMutex::new(());
 // TODO Device Tree

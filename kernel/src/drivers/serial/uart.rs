@@ -9,9 +9,9 @@ const FCR: usize = 0x02; // FIFO Control Register
 const LCR: usize = 0x03; // Line Control Register
 const MCR: usize = 0x04; // Modem Control Register
 const LSR: usize = 0x05; // Line Status Register
-// const MSR: usize = 0x06; // Modem Status Register
-// const SCR: usize = 0x07; // Scratchpad Register
-// const MDR1: usize = 0x08; // Multi-Function Data Register 1
+                         // const MSR: usize = 0x06; // Modem Status Register
+                         // const SCR: usize = 0x07; // Scratchpad Register
+                         // const MDR1: usize = 0x08; // Multi-Function Data Register 1
 
 const LSR_THRE: u8 = 0x20; // Transmit Holding Register Empty
 const LSR_DR: u8 = 0x01; // Data Ready
@@ -64,7 +64,7 @@ impl ConsoleDevice for Uart {
                     write_reg!(ptr, MCR, 0x00, self.reg_shift);
                     write_reg!(ptr, IER, 0x01, self.reg_shift);
                 }
-            },
+            }
             4 => {
                 let ptr = self.base as *mut u32;
                 unsafe {
@@ -78,7 +78,7 @@ impl ConsoleDevice for Uart {
                     write_reg!(ptr, MCR, 0x00, self.reg_shift);
                     write_reg!(ptr, IER, 0x01, self.reg_shift);
                 }
-            },
+            }
             _ => panic!("Invalid register width"),
         }
     }
@@ -91,14 +91,14 @@ impl ConsoleDevice for Uart {
                     while read_reg!(ptr, LSR, self.reg_shift) & LSR_THRE == 0 {}
                     write_reg!(ptr, THR, c, self.reg_shift);
                 }
-            },
+            }
             4 => {
                 let ptr = self.base as *mut u32;
                 unsafe {
                     while read_reg!(ptr, LSR, self.reg_shift) & LSR_THRE as u32 == 0 {}
                     write_reg!(ptr, THR, c as u32, self.reg_shift);
                 }
-            },
+            }
             _ => panic!("Invalid register width"),
         }
     }
@@ -114,7 +114,7 @@ impl ConsoleDevice for Uart {
                         None
                     }
                 }
-            },
+            }
             4 => {
                 let ptr = self.base as *mut u32;
                 unsafe {
@@ -124,7 +124,7 @@ impl ConsoleDevice for Uart {
                         None
                     }
                 }
-            },
+            }
             _ => panic!("Invalid register width"),
         }
     }
