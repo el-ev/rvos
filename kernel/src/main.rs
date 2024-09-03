@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler)]
-#![feature(asm_const)]
 #![feature(naked_functions)]
 
 extern crate alloc;

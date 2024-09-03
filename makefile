@@ -35,9 +35,13 @@ run: build kill
 	$(QEMU) $(QEMU_ARGS)
 
 debug: build kill
-	$(QEMU) $(QEMU_ARGS) -s -S & 
-	gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"
-	killall $(QEMU)
+	$(QEMU) $(QEMU_ARGS) -s -S &
+	@if [ "$(shell uname)" = "Darwin" ]; then \
+		lldb -o "target create $(KERNEL)" -o "gdb-remote 1234"; \
+	else \
+		gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"; \
+	fi
+	killall $(QEMU) || true
 
 objdump: build
 	$(OBJDUMP) -d $(KERNEL) > kernel.asm
