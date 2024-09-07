@@ -6,10 +6,10 @@ use core::{
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::drivers::serial::ConsoleDevice;
+use crate::{drivers::serial::ConsoleDevice, Mutex};
 use crate::{config::KERNEL_OFFSET, drivers::serial::Uart};
 
-static PRINT_LOCK: sync::SpinNoIrqMutex<()> = sync::SpinNoIrqMutex::new(());
+static PRINT_LOCK: Mutex<()> = Mutex::new(());
 // TODO Device Tree
 pub static CONSOLE: Lazy<Box<dyn ConsoleDevice + Send + Sync>> = Lazy::new(|| {
     let uart = Uart::new(0x1000_0000, 0x0038_4000, 115200, 1, 0);

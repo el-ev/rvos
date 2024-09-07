@@ -2,9 +2,8 @@ use core::fmt;
 
 use alloc::vec::Vec;
 use log::{info, warn};
-use sync::SpinNoIrqMutex;
 
-use crate::prev_pow_of_2;
+use crate::{prev_pow_of_2, Mutex};
 
 use super::{
     addr::{PhysAddr, PhysPageNum},
@@ -13,8 +12,8 @@ use super::{
 
 const ORDER: usize = 32;
 
-pub static FRAME_ALLOCATOR: SpinNoIrqMutex<FrameAllocator<ORDER>> =
-    SpinNoIrqMutex::new(FrameAllocator::new());
+pub static FRAME_ALLOCATOR: Mutex<FrameAllocator<ORDER>> =
+    Mutex::new(FrameAllocator::new());
 
 #[derive(Debug, Clone)]
 pub struct FrameTracker {

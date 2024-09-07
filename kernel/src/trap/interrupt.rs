@@ -1,11 +1,10 @@
 use riscv::register::scause::Interrupt;
 
-use crate::{println, timer};
+use crate::timer;
 
-use super::context::Context;
+use super::context::KernelContext;
 
-pub fn handle_interrupt(_ctx: &mut Context, i: Interrupt) {
-    println!("ctx: {:x?}", _ctx);
+pub fn handle_interrupt(_ctx: &mut KernelContext, i: Interrupt) {
     match i {
         Interrupt::SupervisorTimer => timer_interrupt(),
         _ => panic!("unhandled interrupt: {:?}!", i),

@@ -9,6 +9,9 @@ use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 use config::KERNEL_OFFSET;
 use log::{error, info};
 use sbi::hsm::sbi_hart_get_status;
+use sync::SpinNoIrqMutex;
+
+pub type Mutex<T> = SpinNoIrqMutex<T>;
 
 mod config;
 mod console;
@@ -60,7 +63,9 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
-    panic!()
+    loop {
+        core::hint::spin_loop();
+    }
 }
 
 #[no_mangle]
