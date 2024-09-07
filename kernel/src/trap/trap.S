@@ -10,7 +10,7 @@
     .globl _kernel_trap
 .align 3
 _kernel_trap:
-    addi sp, sp, -8*39
+    addi sp, sp, -8*38
     SAVE 1
     SAVE 2
     SAVE 3
@@ -52,6 +52,7 @@ _kernel_trap:
     sd sp, 8*35(sp)
     csrr t0, stval
     sd t0, 8*36(sp)
+    sd tp, 8*37(sp)
 
     mv a0, sp
     csrr a1, scause

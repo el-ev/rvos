@@ -1,11 +1,9 @@
 use core::arch::asm;
 
-use crate::{
-    config::{CPU_NUM, KERNEL_OFFSET},
-    mm::{
-        addr::PhysPageNum,
-        paging::pte::{PageTableEntry, PteFlags},
-    },
+use crate::config::{CPU_NUM, KERNEL_OFFSET};
+use crate::mm::{
+    addr::PhysPageNum,
+    paging::pte::{PageTableEntry, PteFlags},
 };
 
 #[naked]

@@ -7,7 +7,7 @@ use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
 use crate::drivers::serial::ConsoleDevice;
-use crate::{config::KERNEL_OFFSET, drivers::serial::uart::Uart};
+use crate::{config::KERNEL_OFFSET, drivers::serial::Uart};
 
 static PRINT_LOCK: sync::SpinNoIrqMutex<()> = sync::SpinNoIrqMutex::new(());
 // TODO Device Tree

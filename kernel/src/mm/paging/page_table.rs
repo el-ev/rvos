@@ -4,10 +4,10 @@ use alloc::vec::Vec;
 use super::pte::{PageTableEntry, PteFlags};
 
 use crate::mask;
+use crate::mm::addr::VirtAddr;
 use crate::mm::addr::{pa2kva, PhysAddr, PhysPageNum, VirtPageNum};
-use crate::mm::consts::PPN_WIDTH;
+use crate::mm::consts::{PAGE_TABLE_ENTRY_COUNT as ENTRY_COUNT, PPN_WIDTH};
 use crate::mm::frame::{self, FrameTracker};
-use crate::mm::{addr::VirtAddr, consts::PAGE_TABLE_ENTRY_COUNT as ENTRY_COUNT};
 
 impl PhysPageNum {
     fn as_page_table(&self) -> &'static mut [PageTableEntry] {

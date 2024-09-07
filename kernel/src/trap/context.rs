@@ -9,7 +9,6 @@ pub struct Context {
     pub kernel_satp: usize,
     pub kernel_sp: usize,
     pub kernel_stval: usize,
-    pub trap_handler: usize,
     pub hartid: usize,
 }
 
@@ -24,7 +23,6 @@ impl Debug for Context {
         writeln!(f, "sepc: {:#x}", self.sepc)?;
         writeln!(f, "kernel_satp: {:#x}", self.kernel_satp)?;
         writeln!(f, "kernel_sp: {:#x}", self.kernel_sp)?;
-        writeln!(f, "trap_handler: {:#x}", self.trap_handler)?;
         writeln!(f, "hartid: {:#x}", self.hartid)?;
         Ok(())
     }

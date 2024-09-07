@@ -1,4 +1,6 @@
-pub mod uart;
+mod uart;
+
+pub use uart::Uart;
 
 pub trait ConsoleDevice {
     fn init(&self);

@@ -47,5 +47,6 @@ pub fn tick() {
     (*TICKS).set((*TICKS).get() + 1);
     if (*TICKS).get() % INTERRUPT_PER_SEC == 0 {
         info!("{} seconds passed.", get_time_sec());
+        panic!();
     }
 }
