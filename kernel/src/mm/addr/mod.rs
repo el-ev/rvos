@@ -3,7 +3,7 @@ use log::warn;
 pub use phys::{PhysAddr, PhysPageNum};
 pub use virt::{VirtAddr, VirtPageNum};
 
-use super::{address_space::{KERNEL_OFFSET, K_VIRTUAL_MEMORY_BEG, PHYSICAL_MEMORY_START}, consts::PAGE_SIZE};
+use super::{address_space::{KERNEL_OFFSET, K_PHYSICAL_MEMORY_BEG, K_VIRTUAL_MEMORY_BEG, PHYSICAL_MEMORY_START}, consts::PAGE_SIZE};
 use crate::config::MEMORY_SIZE;
 
 mod phys;
@@ -17,7 +17,7 @@ pub fn pa2kva(pa: PhysAddr) -> VirtAddr {
 }
 
 pub fn kva2pa(va: VirtAddr) -> PhysAddr {
-    if !(K_VIRTUAL_MEMORY_BEG..K_VIRTUAL_MEMORY_BEG + MEMORY_SIZE).contains(&va.0) {
+    if !(K_PHYSICAL_MEMORY_BEG..K_PHYSICAL_MEMORY_BEG + MEMORY_SIZE).contains(&va.0) {
         warn!("Address not in kernel virtual memory range");
     }
     PhysAddr(va.0 - KERNEL_OFFSET)
