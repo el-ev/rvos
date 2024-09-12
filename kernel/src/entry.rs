@@ -1,6 +1,7 @@
 use core::arch::asm;
 
-use crate::config::{CPU_NUM, KERNEL_OFFSET};
+use crate::config::CPU_NUM;
+use crate::mm::address_space::KERNEL_OFFSET;
 use crate::mm::{
     addr::PhysPageNum,
     paging::pte::{PageTableEntry, PteFlags},
@@ -71,7 +72,7 @@ pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
                                                     // TODO Map device to high memory
     table[0] = PageTableEntry::new(PhysPageNum(0x0), flags);
     table[2] = PageTableEntry::new(ppn, flags); // 0x0000_0000_8000_0000
-    table[508] = PageTableEntry::new(ppn, flags); // 0xffff_ffff_0000_0000
+    table[448] = PageTableEntry::new(ppn, flags); // 0xffff_fff0_0000_0000
     table
 };
 

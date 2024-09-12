@@ -6,8 +6,8 @@ use core::{
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::{drivers::serial::ConsoleDevice, Mutex};
-use crate::{config::KERNEL_OFFSET, drivers::serial::Uart};
+use crate::{drivers::serial::ConsoleDevice, mm::address_space::KERNEL_OFFSET, Mutex};
+use crate::drivers::serial::Uart;
 
 static PRINT_LOCK: Mutex<()> = Mutex::new(());
 // TODO Device Tree
@@ -24,7 +24,7 @@ impl fmt::Write for Stdout {
         if CUSTOM_PRINT.load(Ordering::Relaxed) {
             CONSOLE.puts(s);
         } else {
-            sbi_debug_console_write(s.as_ptr() as u64 - KERNEL_OFFSET as u64, s.len() as u64);
+            sbi_debug_console_write((s.as_ptr() as usize - KERNEL_OFFSET) as u64, s.len() as u64);
         }
         Ok(())
     }

@@ -6,8 +6,8 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use config::KERNEL_OFFSET;
 use log::{error, info};
+use mm::address_space::KERNEL_OFFSET;
 use sbi::hsm::sbi_hart_get_status;
 use sync::SpinNoIrqMutex;
 

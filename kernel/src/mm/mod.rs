@@ -1,10 +1,12 @@
 #![allow(unused)]
 
 use addr::{kva2pa, PhysAddr, VirtAddr};
+use address_space::PHYSICAL_MEMORY_START;
 
-use crate::config::{MEMORY_SIZE, PHYSICAL_MEMORY_START};
+use crate::config::MEMORY_SIZE;
 
 pub mod addr;
+pub mod address_space;
 pub mod consts;
 mod frame;
 mod heap;
