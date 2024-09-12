@@ -62,9 +62,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
-    loop {
-        core::hint::spin_loop();
-    }
+    panic!()
 }
 
 #[no_mangle]

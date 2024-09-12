@@ -11,20 +11,20 @@ impl PartialEq<usize> for Pid {
     }
 }
 
-pub struct PidWrapper(Pid);
+pub struct PidHandle(Pid);
 
-impl PidWrapper {
+impl PidHandle {
     pub fn pid(&self) -> Pid {
         self.0
     }
 }
 
-impl Drop for PidWrapper {
+impl Drop for PidHandle {
     fn drop(&mut self) {
         PID_POOL.lock().dealloc(self.0 .0);
     }
 }
 
-pub fn alloc_pid() -> PidWrapper {
-    PidWrapper(Pid(PID_POOL.lock().alloc()))
+pub fn alloc_pid() -> PidHandle {
+    PidHandle(Pid(PID_POOL.lock().alloc()))
 }

@@ -8,7 +8,7 @@ use riscv::register::{
     stvec::{self, TrapMode},
 };
 
-mod context;
+pub mod context;
 mod exception;
 mod interrupt;
 

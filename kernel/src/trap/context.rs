@@ -6,10 +6,10 @@ pub struct UserContext {
     pub usstatus: usize,    // 32
     pub sepc: usize,        // 33
 
-    pub ksregs: [usize; 12],// 34-45
-    pub kra: usize,         // 46
-    pub ksp: usize,         // 47
-    pub ktp: usize,         // 48
+    pub ksregs: [usize; 12], // 34-45
+    pub kra: usize,          // 46
+    pub ksp: usize,          // 47
+    pub ktp: usize,          // 48
 }
 
 impl Debug for UserContext {

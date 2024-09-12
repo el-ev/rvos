@@ -12,8 +12,7 @@ use super::{
 
 const ORDER: usize = 32;
 
-pub static FRAME_ALLOCATOR: Mutex<FrameAllocator<ORDER>> =
-    Mutex::new(FrameAllocator::new());
+pub static FRAME_ALLOCATOR: Mutex<FrameAllocator<ORDER>> = Mutex::new(FrameAllocator::new());
 
 #[derive(Debug, Clone)]
 pub struct FrameTracker {
