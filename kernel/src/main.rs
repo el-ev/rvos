@@ -55,8 +55,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     loop {
         core::hint::spin_loop();
         if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
-            // TODO: Enable when we have device memory region
-            // mm::paging::unmap_low_memory();
+            mm::paging::unmap_low_memory();
             break;
         }
     }
