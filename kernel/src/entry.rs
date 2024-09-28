@@ -8,11 +8,12 @@ use crate::mm::{
 };
 
 #[naked]
-#[no_mangle]
-#[link_section = ".init.boot"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".init.boot")]
 unsafe extern "C" fn _low_entry() -> ! {
-    asm!(
-        "   mv  tp, a0
+    unsafe {
+        asm!(
+            "   mv  tp, a0
             li  s0, {kernel_offset}
             add a1, a1, s0
             call {set_stack}
@@ -22,19 +23,21 @@ unsafe extern "C" fn _low_entry() -> ! {
             add t1, t1, s0
             jr  t1
         ",
-        kernel_offset = const KERNEL_OFFSET,
-        set_stack   = sym set_stack,
-        set_boot_page_table = sym set_boot_page_table,
-        options(noreturn)
-    )
+            kernel_offset = const KERNEL_OFFSET,
+            set_stack   = sym set_stack,
+            set_boot_page_table = sym set_boot_page_table,
+            options(noreturn)
+        )
+    }
 }
 
 #[naked]
-#[no_mangle]
-#[link_section = ".init.boot"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".init.boot")]
 pub unsafe extern "C" fn _second_boot() -> ! {
-    asm!(
-        "   mv  tp, a0
+    unsafe {
+        asm!(
+            "   mv  tp, a0
             li  s0, {kernel_offset}
             add a1, a1, s0
             call {set_stack}
@@ -44,27 +47,30 @@ pub unsafe extern "C" fn _second_boot() -> ! {
             add t1, t1, s0
             jr  t1
         ",
-        kernel_offset = const KERNEL_OFFSET,
-        set_stack   = sym set_stack,
-        set_boot_page_table = sym set_boot_page_table,
-        options(noreturn)
-    )
+            kernel_offset = const KERNEL_OFFSET,
+            set_stack   = sym set_stack,
+            set_boot_page_table = sym set_boot_page_table,
+            options(noreturn)
+        )
+    }
 }
 
 #[naked]
-#[no_mangle]
-#[link_section = ".text.entry"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".text.entry")]
 unsafe extern "C" fn _high_entry() -> ! {
-    core::arch::asm!(
-        "
+    unsafe {
+        asm!(
+            "
             la   t0, kernel_main
             jr   t0
         ",
-        options(noreturn),
-    )
+            options(noreturn),
+        )
+    }
 }
 
-#[link_section = ".data.boot_page_table"]
+#[unsafe(link_section = ".data.boot_page_table")]
 pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
     let mut table = [PageTableEntry::EMPTY; 512];
     let ppn = PhysPageNum(0x80000);
@@ -78,28 +84,31 @@ pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
 #[repr(C, align(4096))]
 struct KernelStack([u8; 1 << 20]); // 1MiB stack
 
-#[link_section = ".bss.stack"]
+#[unsafe(link_section = ".bss.stack")]
 static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; CPU_NUM]> =
     core::mem::MaybeUninit::uninit();
 
 #[naked]
 unsafe extern "C" fn set_stack(hartid: usize) {
-    asm!(
-        "   add  t0, a0, 1
+    unsafe {
+        asm!(
+            "   add  t0, a0, 1
             slli t0, t0, 20
             la   sp, {stack}
             add  sp, sp, t0
             ret
         ",
-        stack = sym KERNEL_STACK,
-        options(noreturn),
-    )
+            stack = sym KERNEL_STACK,
+            options(noreturn),
+        )
+    }
 }
 
 #[naked]
 unsafe extern "C" fn set_boot_page_table(hartid: usize) {
-    asm!(
-        "   la   t0, {boot_page_table}
+    unsafe {
+        asm!(
+            "   la   t0, {boot_page_table}
             srli t0, t0, 12
             li   t1, 8 << 60
             or   t0, t0, t1
@@ -107,7 +116,8 @@ unsafe extern "C" fn set_boot_page_table(hartid: usize) {
             sfence.vma
             ret
         ",
-        boot_page_table = sym BOOT_PAGE_TABLE,
-        options(noreturn),
-    )
+            boot_page_table = sym BOOT_PAGE_TABLE,
+            options(noreturn),
+        )
+    }
 }

@@ -8,12 +8,12 @@ use crate::config::MEMORY_SIZE;
 pub mod addr;
 pub mod address_space;
 pub mod consts;
-mod frame;
+pub mod frame;
 mod heap;
 pub mod layout;
 pub mod paging;
 
-extern "C" {
+unsafe extern "C" {
     fn __kernel_end();
 }
 

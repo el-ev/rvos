@@ -1,6 +1,7 @@
 use core::fmt::{self, Debug};
 
 #[repr(C)]
+#[derive(Default)]
 pub struct UserContext {
     pub uregs: [usize; 32], // 0-31
     pub usstatus: usize,    // 32

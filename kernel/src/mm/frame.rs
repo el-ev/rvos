@@ -3,7 +3,7 @@ use core::fmt;
 use alloc::vec::Vec;
 use log::{info, warn};
 
-use crate::{prev_pow_of_2, Mutex};
+use crate::{Mutex, prev_pow_of_2};
 
 use super::{
     addr::{PhysAddr, PhysPageNum},
@@ -137,7 +137,9 @@ impl fmt::Debug for FrameAllocator<ORDER> {
 
 unsafe fn clear_frame(frame: PhysPageNum, size: usize) {
     let ptr = PhysAddr::from(frame).as_mut_ptr::<u8>();
-    ptr.write_bytes(0, FRAME_SIZE * size);
+    unsafe {
+        ptr.write_bytes(0, FRAME_SIZE * size);
+    }
 }
 
 pub fn debug_print() {

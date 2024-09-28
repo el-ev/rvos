@@ -14,7 +14,7 @@ mod interrupt;
 
 global_asm!(include_str!("trap.S"));
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(improper_ctypes_definitions)]
 pub extern "C" fn kernel_trap_handler(context: &mut KernelContext, scause: Scause, _stval: usize) {
     match scause.cause() {
@@ -25,7 +25,7 @@ pub extern "C" fn kernel_trap_handler(context: &mut KernelContext, scause: Scaus
 
 #[inline(always)]
 pub fn set_kernel_trap() {
-    extern "C" {
+    unsafe extern "C" {
         fn _kernel_to_kernel_trap();
     }
     unsafe {

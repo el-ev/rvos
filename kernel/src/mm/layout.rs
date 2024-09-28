@@ -1,6 +1,6 @@
 use log::info;
 
-extern "C" {
+unsafe extern "C" {
     pub fn __kernel_start();
     pub fn __kernel_end();
     pub fn __text_start();

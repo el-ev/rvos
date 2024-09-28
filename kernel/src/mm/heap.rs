@@ -1,3 +1,5 @@
+use core::ptr::addr_of_mut;
+
 use allocator::BuddyAllocator;
 use log::info;
 
@@ -11,7 +13,7 @@ pub fn init() {
     unsafe {
         HEAP_ALLOCATOR
             .lock()
-            .add_size(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE);
+            .add_size(addr_of_mut!(HEAP_SPACE) as usize, KERNEL_HEAP_SIZE);
     }
     info!(
         "Initialized {} KiB of kernel heap.",

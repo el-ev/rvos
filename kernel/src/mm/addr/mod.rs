@@ -1,9 +1,14 @@
 use log::warn;
 
 pub use phys::{PhysAddr, PhysPageNum};
-pub use virt::{VirtAddr, VirtPageNum};
+pub use virt::{VPNRange, VirtAddr, VirtPageNum};
 
-use super::{address_space::{KERNEL_OFFSET, K_PHYSICAL_MEMORY_BEG, K_VIRTUAL_MEMORY_BEG, PHYSICAL_MEMORY_START}, consts::PAGE_SIZE};
+use super::{
+    address_space::{
+        K_PHYSICAL_MEMORY_BEG, K_VIRTUAL_MEMORY_BEG, KERNEL_OFFSET, PHYSICAL_MEMORY_START,
+    },
+    consts::PAGE_SIZE,
+};
 use crate::config::MEMORY_SIZE;
 
 mod phys;
@@ -26,19 +31,19 @@ pub fn kva2pa(va: VirtAddr) -> PhysAddr {
 impl PhysAddr {
     pub unsafe fn as_slice(self, len: usize) -> &'static [u8] {
         let mapped_addr = pa2kva(self);
-        core::slice::from_raw_parts(mapped_addr.0 as *const u8, len)
+        unsafe { core::slice::from_raw_parts(mapped_addr.0 as *const u8, len) }
     }
 
     pub unsafe fn as_mut_slice(self, len: usize) -> &'static mut [u8] {
         let mapped_addr = pa2kva(self);
-        core::slice::from_raw_parts_mut(mapped_addr.0 as *mut u8, len)
+        unsafe { core::slice::from_raw_parts_mut(mapped_addr.0 as *mut u8, len) }
     }
 
     pub unsafe fn as_page_slice(self) -> &'static [u8] {
-        self.as_slice(PAGE_SIZE)
+        unsafe { self.as_slice(PAGE_SIZE) }
     }
 
     pub unsafe fn as_mut_page_slice(self) -> &'static mut [u8] {
-        self.as_mut_slice(PAGE_SIZE)
+        unsafe { self.as_mut_slice(PAGE_SIZE) }
     }
 }

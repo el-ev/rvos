@@ -6,8 +6,9 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use log::{error, info};
+use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
+use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
 use sync::SpinNoIrqMutex;
 
@@ -36,7 +37,7 @@ const BANNER: &str = r#"  _______      ______   _____
  |_|  \_\  \/   \____/|_____/  
 "#;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     clear_bss();
     logging::init();
@@ -59,13 +60,14 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
             break;
         }
     }
+    unsafe { ebreak() };
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
     panic!()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn parking(_hartid: usize) -> ! {
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     loop {
@@ -74,7 +76,7 @@ extern "C" fn parking(_hartid: usize) -> ! {
 }
 
 fn clear_bss() {
-    extern "C" {
+    unsafe extern "C" {
         fn __bss_start();
         fn __bss_end();
     }

@@ -74,11 +74,11 @@ impl VirtAddr {
     }
 
     pub unsafe fn as_mut_page_slice(&self) -> &'static mut [u8] {
-        self.as_mut_slice(PAGE_SIZE)
+        unsafe { self.as_mut_slice(PAGE_SIZE) }
     }
 
     pub unsafe fn as_mut_slice(&self, len: usize) -> &'static mut [u8] {
-        core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
+        unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr(), len) }
     }
 }
 
@@ -142,5 +142,33 @@ impl From<VirtPageNum> for VirtAddr {
 impl From<VirtPageNum> for usize {
     fn from(v: VirtPageNum) -> Self {
         v.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VPNRange {
+    pub start: VirtPageNum, // inclusive
+    pub end: VirtPageNum,   // exclusive
+}
+
+impl VPNRange {
+    pub fn new(start: VirtPageNum, end: VirtPageNum) -> Self {
+        Self { start, end }
+    }
+
+    pub fn len(&self) -> usize {
+        self.end.0 - self.start.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
+
+    pub fn contains(&self, vpn: VirtPageNum) -> bool {
+        self.start <= vpn && vpn < self.end
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = VirtPageNum> {
+        (self.start.0..self.end.0).map(VirtPageNum)
     }
 }
