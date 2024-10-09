@@ -9,5 +9,6 @@ pub fn handle_exception(_ctx: &mut KernelContext, e: Exception) {
 
 pub fn handle_ebreak(ctx: &mut KernelContext) {
     info!("ebreak at 0x{:x}", ctx.sepc);
-    ctx.sepc += 4;
+    // 32-bit
+    ctx.sepc += 2;
 }
