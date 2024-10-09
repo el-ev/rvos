@@ -3,7 +3,7 @@ use core::fmt;
 use bitflags::bitflags;
 
 use crate::mm::addr::{PhysAddr, PhysPageNum};
-use crate::mm::consts::{PTEFLAGS_MASK, PTE_PPN_MASK};
+use crate::mm::consts::{PTE_PPN_MASK, PTEFLAGS_MASK};
 use crate::mm::frame;
 
 // TODO: CoW

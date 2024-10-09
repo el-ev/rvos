@@ -9,9 +9,9 @@ const FCR: usize = 0x02; // FIFO Control Register
 const LCR: usize = 0x03; // Line Control Register
 const MCR: usize = 0x04; // Modem Control Register
 const LSR: usize = 0x05; // Line Status Register
-                         // const MSR: usize = 0x06; // Modem Status Register
-                         // const SCR: usize = 0x07; // Scratchpad Register
-                         // const MDR1: usize = 0x08; // Multi-Function Data Register 1
+// const MSR: usize = 0x06; // Modem Status Register
+// const SCR: usize = 0x07; // Scratchpad Register
+// const MDR1: usize = 0x08; // Multi-Function Data Register 1
 
 const LSR_THRE: u8 = 0x20; // Transmit Holding Register Empty
 const LSR_DR: u8 = 0x01; // Data Ready

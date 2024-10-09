@@ -1,6 +1,7 @@
 use core::panic::PanicInfo;
 
 use alloc::{collections::btree_map::BTreeMap, format, string::String};
+use arch::get_hart_id;
 use log::error;
 use rustc_demangle::demangle;
 use xmas_elf::ElfFile;
@@ -14,16 +15,18 @@ fn panic(info: &PanicInfo) -> ! {
     }
     if let Some(location) = info.location() {
         error!(
-            "\x1b[1;31mPanicked: \"{}\" at {}:{}{}\x1b[1;0m",
+            "\x1b[1;31mPanicked: \"{}\" from hart {} at {}:{}{}\x1b[1;0m",
             info.message(),
+            get_hart_id(),
             location.file(),
             location.line(),
             backtrace()
         );
     } else {
         error!(
-            "\x1b[1;31mPanicked: {}{}\x1b[1;0m",
+            "\x1b[1;31mPanicked: {} from hart {}{}\x1b[1;0m",
             info.message(),
+            get_hart_id(),
             backtrace()
         );
     }

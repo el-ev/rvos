@@ -57,11 +57,9 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     loop {
         core::hint::spin_loop();
         if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
-            mm::paging::unmap_low_memory();
             break;
         }
     }
-    #[cfg(not(feature = "smp"))]
     mm::paging::unmap_low_memory();
     unsafe {
         ebreak();
@@ -69,7 +67,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
-    panic!();
+    panic!()
 }
 
 #[unsafe(no_mangle)]

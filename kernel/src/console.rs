@@ -6,8 +6,12 @@ use core::{
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::{drivers::serial::ConsoleDevice, mm::address_space::{KERNEL_OFFSET, K_HARDWARE_BEG}, Mutex};
 use crate::drivers::serial::Uart;
+use crate::{
+    Mutex,
+    drivers::serial::ConsoleDevice,
+    mm::address_space::{K_HARDWARE_BEG, KERNEL_OFFSET},
+};
 
 static PRINT_LOCK: Mutex<()> = Mutex::new(());
 // TODO Device Tree

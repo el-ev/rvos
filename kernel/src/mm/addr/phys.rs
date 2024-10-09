@@ -5,7 +5,7 @@ use core::{
 
 use crate::{
     mask,
-    mm::consts::{PAGE_SIZE, PAGE_SIZE_BITS, PA_WIDTH},
+    mm::consts::{PA_WIDTH, PAGE_SIZE, PAGE_SIZE_BITS},
     round_up,
 };
 

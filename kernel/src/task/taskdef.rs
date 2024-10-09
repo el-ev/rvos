@@ -2,7 +2,10 @@ use alloc::{boxed::Box, rc::Weak, sync::Arc, vec::Vec};
 
 use crate::trap::context::UserContext;
 
-use super::{pid::{alloc_pid, PidHandle}, user_space::{alloc_stack_id, StackId}};
+use super::{
+    pid::{PidHandle, alloc_pid},
+    user_space::{StackId, alloc_stack_id},
+};
 
 pub struct TaskControlBlock {
     pid: PidHandle,

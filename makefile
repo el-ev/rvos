@@ -41,13 +41,12 @@ debug: build kill
 	else \
 		gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"; \
 	fi
-	killall $(QEMU) || true
 
 objdump: build
 	$(OBJDUMP) -d $(KERNEL) > kernel.asm
 
 kill:
-	killall $(QEMU) || true
+	killall $(QEMU) > /dev/null || true
 
 clean:
 	cargo clean

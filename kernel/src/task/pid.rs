@@ -1,4 +1,4 @@
-use crate::{utils::pool::UsizePool, Mutex};
+use crate::{Mutex, utils::pool::UsizePool};
 
 static PID_POOL: Mutex<UsizePool> = Mutex::new(UsizePool::new());
 
@@ -21,7 +21,7 @@ impl PidHandle {
 
 impl Drop for PidHandle {
     fn drop(&mut self) {
-        PID_POOL.lock().dealloc(self.0 .0);
+        PID_POOL.lock().dealloc(self.0.0);
     }
 }
 

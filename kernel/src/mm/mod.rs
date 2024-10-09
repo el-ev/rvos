@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use addr::{kva2pa, PhysAddr, VirtAddr};
+use addr::{PhysAddr, VirtAddr, kva2pa};
 use address_space::PHYSICAL_MEMORY_START;
 
 use crate::config::MEMORY_SIZE;

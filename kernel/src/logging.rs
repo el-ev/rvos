@@ -1,6 +1,8 @@
+use alloc::format;
 use log::{Level, LevelFilter, Log, Metadata, Record};
+use sbi::dbcn::sbi_debug_console_write;
 
-use crate::println;
+use crate::{mm::address_space::KERNEL_OFFSET, println};
 
 struct Logger;
 
@@ -20,14 +22,26 @@ impl Log for Logger {
             Level::Debug => "32", // green
             Level::Trace => "90", // gray
         };
-        println!(
-            "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
-            color,
-            record.file().unwrap_or("unknown"),
-            record.line().unwrap_or(0),
-            record.level(),
-            record.args()
-        );
+        if record.level() == Level::Error {
+            let msg = format!(
+                "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
+                color,
+                record.file().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                record.level(),
+                record.args()
+            );
+            sbi_debug_console_write((msg.as_ptr() as usize - KERNEL_OFFSET) as u64, msg.len() as u64);
+        } else {
+            println!(
+                "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
+                color,
+                record.file().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                record.level(),
+                record.args()
+            );
+        }
     }
 
     fn flush(&self) {}

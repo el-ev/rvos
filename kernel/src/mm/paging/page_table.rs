@@ -5,7 +5,7 @@ use super::pte::{PageTableEntry, PteFlags};
 
 use crate::mask;
 use crate::mm::addr::VirtAddr;
-use crate::mm::addr::{pa2kva, PhysAddr, PhysPageNum, VirtPageNum};
+use crate::mm::addr::{PhysAddr, PhysPageNum, VirtPageNum, pa2kva};
 use crate::mm::consts::{PAGE_TABLE_ENTRY_COUNT as ENTRY_COUNT, PPN_WIDTH};
 use crate::mm::frame::{self, FrameTracker};
 

@@ -1,11 +1,7 @@
 #[macro_export]
 macro_rules! mask {
     ($size:expr) => {
-        if $size < 64 {
-            (1 << $size) - 1
-        } else {
-            !0
-        }
+        if $size < 64 { (1 << $size) - 1 } else { !0 }
     };
 }
 
