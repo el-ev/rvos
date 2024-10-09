@@ -3,7 +3,7 @@ use core::arch::global_asm;
 use context::KernelContext;
 use log::debug;
 use riscv::register::{
-    scause::{Scause, Trap},
+    scause::{Exception, Scause, Trap},
     sie,
     stvec::{self, TrapMode},
 };
@@ -19,6 +19,7 @@ global_asm!(include_str!("trap.S"));
 pub extern "C" fn kernel_trap_handler(context: &mut KernelContext, scause: Scause, _stval: usize) {
     match scause.cause() {
         Trap::Interrupt(i) => interrupt::handle_interrupt(context, i),
+        Trap::Exception(Exception::Breakpoint) => exception::handle_ebreak(context),
         Trap::Exception(e) => exception::handle_exception(context, e),
     }
 }

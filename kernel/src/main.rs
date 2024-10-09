@@ -6,7 +6,7 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use log::{error, info, warn};
+use log::{error, info};
 use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
@@ -53,6 +53,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
             start_hart(i);
         }
     }
+    #[cfg(feature = "smp")]
     loop {
         core::hint::spin_loop();
         if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
@@ -60,11 +61,15 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
             break;
         }
     }
-    unsafe { ebreak() };
+    #[cfg(not(feature = "smp"))]
+    mm::paging::unmap_low_memory();
+    unsafe {
+        ebreak();
+    }
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
-    panic!()
+    panic!();
 }
 
 #[unsafe(no_mangle)]

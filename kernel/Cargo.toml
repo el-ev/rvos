@@ -15,9 +15,12 @@ allocator = { path = "../crates/allocator" }
 bitflags = "2.6.0"
 log = "0.4.14"
 riscv = "0.11.1"
+xmas-elf = "0.9.1"
+rustc-demangle = "0.1.24"
 
 [features]
-default = ["qemu", "smp"]
+default = ["qemu", "smp", "print_symbol"]
 
 qemu = []
 smp = []
+print_symbol = []

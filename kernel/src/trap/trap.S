@@ -16,6 +16,7 @@
 
     .section .text
     .globl _kernel_to_kernel_trap
+    .type _kernel_to_kernel_trap, @function
 .align 3
 _kernel_to_kernel_trap:
     addi sp, sp, -8*38
@@ -107,10 +108,13 @@ _kernel_to_kernel_trap:
     LOADK 1
 
     LOADK 2
-    addi sp, sp, 8*39
+    addi sp, sp, 8*38
     sret
+    .size _kernel_to_kernel_trap, . - _kernel_to_kernel_trap
+
 
     .globl _kernel_to_user_trap
+    .type _kernel_to_user_trap, @function
 _kernel_to_user_trap:
     SAVE s0, 34
     SAVE s1, 35
@@ -169,8 +173,10 @@ _kernel_to_user_trap:
 
     LOAD x10, 10
     sret
+    .size _kernel_to_user_trap, . - _kernel_to_user_trap
 
     .globl _user_to_kernel_trap
+    .type _user_to_kernel_trap, @function
 _user_to_kernel_trap:
     csrrw a0, sscratch, a0
 
@@ -228,3 +234,4 @@ _user_to_kernel_trap:
     LOAD tp, 48
 
     ret
+    .size _user_to_kernel_trap, . - _user_to_kernel_trap
