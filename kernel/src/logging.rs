@@ -31,7 +31,10 @@ impl Log for Logger {
                 record.level(),
                 record.args()
             );
-            sbi_debug_console_write((msg.as_ptr() as usize - KERNEL_OFFSET) as u64, msg.len() as u64);
+            sbi_debug_console_write(
+                (msg.as_ptr() as usize - KERNEL_OFFSET) as u64,
+                msg.len() as u64,
+            );
         } else {
             println!(
                 "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",

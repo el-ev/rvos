@@ -6,13 +6,12 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use log::{error, info};
+use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
-use sync::SpinNoIrqMutex;
 
-pub type Mutex<T> = SpinNoIrqMutex<T>;
+pub type Mutex<T> = sync::SpinNoIrqMutex<T>;
 
 mod config;
 mod console;
@@ -48,16 +47,23 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     trap::set_kernel_trap();
     timer::init();
     #[cfg(feature = "smp")]
-    for i in 0..get_hart_count() {
-        if i != hartid {
-            start_hart(i);
+    {
+        for i in 0..get_hart_count() {
+            if i != hartid {
+                start_hart(i);
+            }
         }
-    }
-    #[cfg(feature = "smp")]
-    loop {
-        core::hint::spin_loop();
-        if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
-            break;
+        let mut i = 0;
+        loop {
+            i += 1;
+            if i > 1000000 {
+                warn!("Some harts failed to start.");
+                break;
+            }
+            core::hint::spin_loop();
+            if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
+                break;
+            }
         }
     }
     mm::paging::unmap_low_memory();
@@ -71,7 +77,8 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn parking(_hartid: usize) -> ! {
+extern "C" fn parking(hartid: usize) -> ! {
+    info!("Hart {} parking.", hartid);
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     loop {
         arch::wfi();

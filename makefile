@@ -20,7 +20,7 @@ BUILDARGS += --release
 endif
 
 QEMU_ARGS :=
-QEMU_ARGS += -smp 8
+QEMU_ARGS += -smp 4
 QEMU_ARGS += -m 2G
 QEMU_ARGS += -machine $(BOARD)
 QEMU_ARGS += -nographic

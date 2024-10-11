@@ -17,6 +17,7 @@ global_asm!(include_str!("trap.S"));
 #[unsafe(no_mangle)]
 #[allow(improper_ctypes_definitions)]
 pub extern "C" fn kernel_trap_handler(context: &mut KernelContext, scause: Scause, _stval: usize) {
+    //trace!("Kernel trap handler: {:?}", scause.cause());
     match scause.cause() {
         Trap::Interrupt(i) => interrupt::handle_interrupt(context, i),
         Trap::Exception(Exception::Breakpoint) => exception::handle_ebreak(context),

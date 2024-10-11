@@ -1,5 +1,5 @@
 // TODO: Auto modify CPU_NUM when makefile changes
-pub const CPU_NUM: usize = 8;
+pub const CPU_NUM: usize = 4;
 
 pub const KERNEL_HEAP_SIZE: usize = 0x100_0000; // 16MiB
 

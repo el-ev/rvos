@@ -1,9 +1,9 @@
-.macro SAVEK n
-    sd x\n, \n*8(sp)
+.macro SAVEK reg, off
+    sd \reg, \off*8(sp)
 .endm
 
-.macro LOADK n
-    ld x\n, \n*8(sp)
+.macro LOADK reg, off
+    ld \reg, \off*8(sp)
 .endm
 
 .macro SAVE reg, off
@@ -13,105 +13,54 @@
 .macro LOAD reg, off
     ld \reg, \off*8(a0)
 .endm
-
-    .section .text
     .globl _kernel_to_kernel_trap
     .type _kernel_to_kernel_trap, @function
 .align 3
 _kernel_to_kernel_trap:
-    addi sp, sp, -8*38
-    SAVEK 1
-    SAVEK 2
-    SAVEK 3
-    SAVEK 4
-    SAVEK 5
-    SAVEK 6
-    SAVEK 7
-    SAVEK 8
-    SAVEK 9
-    SAVEK 10
-    SAVEK 11
-    SAVEK 12
-    SAVEK 13
-    SAVEK 14
-    SAVEK 15
-    SAVEK 16
-    SAVEK 17
-    SAVEK 18
-    SAVEK 19
-    SAVEK 20
-    SAVEK 21
-    SAVEK 22
-    SAVEK 23
-    SAVEK 24
-    SAVEK 25
-    SAVEK 26
-    SAVEK 27
-    SAVEK 28
-    SAVEK 29
-    SAVEK 30
-    SAVEK 31
-
-    csrr t0, sstatus
-    sd t0, 8*32(sp)
+    addi sp, sp, -8*17
+    SAVEK ra, 0
+    SAVEK t0, 1
+    SAVEK t1, 2
+    SAVEK t2, 3
+    SAVEK a0, 4
+    SAVEK a1, 5
+    SAVEK a2, 6
+    SAVEK a3, 7
+    SAVEK a4, 8
+    SAVEK a5, 9
+    SAVEK a6, 10
+    SAVEK a7, 11
+    SAVEK t3, 12
+    SAVEK t4, 13
+    SAVEK t5, 14
+    SAVEK t6, 15
     csrr t0, sepc
-    sd t0, 8*33(sp)
-    csrr t0, satp
-    sd t0, 8*34(sp)
-    sd sp, 8*35(sp)
-    csrr t0, stval
-    sd t0, 8*36(sp)
-    sd tp, 8*37(sp)
-
+    SAVEK t0, 16
     mv a0, sp
     csrr a1, scause
     csrr a2, stval
     call kernel_trap_handler
-
-    ld t0, 8*36(sp)
-    csrw stval, t0
-    ld t0, 8*34(sp)
-    csrw satp, t0
-    ld t0, 8*33(sp)
+    LOADK t0, 16
     csrw sepc, t0
-    ld t0, 8*32(sp)
-    csrw sstatus, t0
-    LOADK 31
-    LOADK 30
-    LOADK 29
-    LOADK 28
-    LOADK 27
-    LOADK 26
-    LOADK 25
-    LOADK 24
-    LOADK 23
-    LOADK 22
-    LOADK 21
-    LOADK 20
-    LOADK 19
-    LOADK 18
-    LOADK 17
-    LOADK 16
-    LOADK 15
-    LOADK 14
-    LOADK 13
-    LOADK 12
-    LOADK 11
-    LOADK 10
-    LOADK 9
-    LOADK 8
-    LOADK 7
-    LOADK 6
-    LOADK 5
-    LOADK 4
-    LOADK 3
-    LOADK 1
-
-    LOADK 2
-    addi sp, sp, 8*38
+    LOADK t6, 15
+    LOADK t5, 14
+    LOADK t4, 13
+    LOADK t3, 12
+    LOADK a7, 11
+    LOADK a6, 10
+    LOADK a5, 9
+    LOADK a4, 8
+    LOADK a3, 7
+    LOADK a2, 6
+    LOADK a1, 5
+    LOADK a0, 4
+    LOADK t2, 3
+    LOADK t1, 2
+    LOADK t0, 1
+    LOADK ra, 0
+    addi sp, sp, 8*17
     sret
     .size _kernel_to_kernel_trap, . - _kernel_to_kernel_trap
-
 
     .globl _kernel_to_user_trap
     .type _kernel_to_user_trap, @function
@@ -170,7 +119,6 @@ _kernel_to_user_trap:
     LOAD x29, 29
     LOAD x30, 30
     LOAD x31, 31
-
     LOAD x10, 10
     sret
     .size _kernel_to_user_trap, . - _kernel_to_user_trap
