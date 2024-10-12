@@ -5,7 +5,7 @@ use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
 use crate::{Mutex, trap::context::UserContext};
 
 use super::{
-    pid::{PidHandle, alloc_pid},
+    pid::{alloc_pid, Pid, PidHandle},
     user_space::UserSpace,
 };
 
@@ -13,16 +13,19 @@ unsafe impl Send for TaskControlBlock {}
 unsafe impl Sync for TaskControlBlock {}
 
 pub struct TaskControlBlock {
-    pub pid: PidHandle,
-    pub parent: Option<Weak<TaskControlBlock>>,
-    pub context: Mutex<UserContext>,
-    pub children: Mutex<Vec<Arc<TaskControlBlock>>>,
-    pub memory: Mutex<UserSpace>,
-    pub status: Mutex<TaskStatus>,
-    pub exit_code: i32,
+    pid: PidHandle,
+    parent: Option<Weak<TaskControlBlock>>,
+    context: Mutex<UserContext>,
+    children: Mutex<Vec<Arc<TaskControlBlock>>>,
+    memory: Mutex<UserSpace>,
+    status: Mutex<TaskStatus>,
+    exit_code: i32,
 }
 
 impl TaskControlBlock {
+    pub fn pid(&self) -> Pid {
+        self.pid.pid()
+    }
     pub fn status(&self) -> TaskStatus {
         *self.status.lock()
     }

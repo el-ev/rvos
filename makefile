@@ -48,7 +48,9 @@ objdump: build
 kill:
 	killall $(QEMU) > /dev/null || true
 
+user:
+	cd user && make
 clean:
 	cargo clean
 
-.PHONY: run debug objdump kill clean
+.PHONY: run debug objdump kill clean user
