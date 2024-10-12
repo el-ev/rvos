@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "custom",
+            "name": "Debug RISC-V Kernel",
+            "targetCreateCommands": [
+                "target create ${workspaceFolder}/target/riscv64gc-unknown-none-elf/debug/kernel"
+            ],
+            "processCreateCommands": [
+                "gdb-remote 1234"
+            ]
+        }
+    ]
+}

@@ -5,7 +5,7 @@ use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
 use crate::{Mutex, trap::context::UserContext};
 
 use super::{
-    pid::{alloc_pid, Pid, PidHandle},
+    pid::{Pid, PidHandle, alloc_pid},
     user_space::UserSpace,
 };
 

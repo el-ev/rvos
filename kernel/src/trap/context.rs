@@ -13,9 +13,7 @@ pub struct UserContext {
     pub ktp: usize,          // 48
 }
 
-impl UserContext {
-    
-}
+impl UserContext {}
 
 impl Debug for UserContext {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -45,7 +43,7 @@ pub struct KernelContext {
 
 impl Debug for KernelContext {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "KernelContext2 {{ regs: [")?;
+        writeln!(f, "KernelContext {{ regs: [")?;
         write!(f, "ra: {:#x}, ", self.regs[0])?;
         write!(f, "t0: {:#x}, ", self.regs[1])?;
         write!(f, "t1: {:#x}, ", self.regs[2])?;

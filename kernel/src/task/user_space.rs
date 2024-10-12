@@ -65,7 +65,8 @@ impl UserSpace {
     }
 
     pub fn init_stack(&mut self, args: Vec<String>) -> usize {
-        todo!()
+        // TODO
+        0
     }
 
     pub fn init_heap(&mut self, page_count: usize) {

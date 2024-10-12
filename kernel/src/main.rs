@@ -44,6 +44,9 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     info!("RVOS Started.");
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
+    console::CONSOLE.init();
+    console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
+    info!("Switched to custom uart driver.");
     trap::set_kernel_trap();
     timer::init();
     #[cfg(feature = "smp")]
@@ -70,16 +73,13 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     unsafe {
         ebreak();
     }
-    console::CONSOLE.init();
-    console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
-    info!("Switched to custom uart driver.");
-    panic!()
+    task::run()
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn parking(hartid: usize) -> ! {
-    info!("Hart {} parking.", hartid);
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+    task::schedule::SCHEDULER.add_processor(task::schedule::Processor::new(hartid));
     loop {
         arch::wfi();
     }

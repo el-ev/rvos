@@ -6,7 +6,7 @@ use log::{info, warn};
 use crate::{Mutex, prev_pow_of_2};
 
 use super::{
-    addr::{pa2kva, PhysAddr, PhysPageNum},
+    addr::{PhysAddr, PhysPageNum, pa2kva},
     consts::FRAME_SIZE,
 };
 
