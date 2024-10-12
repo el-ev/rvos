@@ -6,7 +6,7 @@ use log::{info, warn};
 use crate::{Mutex, prev_pow_of_2};
 
 use super::{
-    addr::{PhysAddr, PhysPageNum},
+    addr::{pa2kva, PhysAddr, PhysPageNum},
     consts::FRAME_SIZE,
 };
 
@@ -136,7 +136,7 @@ impl fmt::Debug for FrameAllocator<ORDER> {
 }
 
 unsafe fn clear_frame(frame: PhysPageNum, size: usize) {
-    let ptr = PhysAddr::from(frame).as_mut_ptr::<u8>();
+    let ptr = pa2kva(PhysAddr::from(frame)).as_mut_ptr::<u8>();
     unsafe {
         ptr.write_bytes(0, FRAME_SIZE * size);
     }
