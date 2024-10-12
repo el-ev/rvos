@@ -1,5 +1,6 @@
 use crate::{
-    entry, mm::{addr::PhysPageNum, address_space::U_HEAP_BEG, consts::PAGE_SIZE}, Mutex
+    Mutex, entry,
+    mm::{addr::PhysPageNum, address_space::U_HEAP_BEG, consts::PAGE_SIZE},
 };
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use bitflags::bitflags;
@@ -190,7 +191,7 @@ impl UserArea {
         while current < data.len() {
             let vpn = iter.next().expect("data too large");
             let src = &data[current..data.len().min(current + PAGE_SIZE)];
-            let dst = page_table.query(vpn).unwrap().ppn().as_bytes();
+            let dst = unsafe {page_table.query(vpn).unwrap().pa().as_mut_page_slice()};
             dst[..src.len()].copy_from_slice(src);
             current += src.len();
             iter.next();

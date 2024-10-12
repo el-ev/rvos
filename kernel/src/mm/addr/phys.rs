@@ -9,6 +9,8 @@ use crate::{
     round_up,
 };
 
+use super::VirtAddr;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PhysAddr(pub usize);
 
@@ -134,12 +136,5 @@ impl From<PhysPageNum> for PhysAddr {
 impl From<PhysPageNum> for usize {
     fn from(v: PhysPageNum) -> Self {
         v.0
-    }
-}
-
-impl PhysPageNum {
-    pub fn as_bytes(&self) -> &'static mut [u8] {
-        let pa: PhysAddr = (*self).into();
-        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
     }
 }
