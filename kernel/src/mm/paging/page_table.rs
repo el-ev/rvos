@@ -74,13 +74,13 @@ impl PageTable {
         let mut page_table = self.ppn;
         for (i, index) in indices.iter().enumerate() {
             let pte = &mut page_table.as_page_table()[*index];
+            if i == 2 {
+                return pte;
+            }
             if !pte.valid() {
                 let frame = frame::alloc().expect("failed to allocate frame for page table");
                 *pte = PageTableEntry::new(frame.ppn, PteFlags::V);
                 self.frames.push(frame);
-            }
-            if i == 2 {
-                return pte;
             }
             page_table = pte.ppn();
         }
