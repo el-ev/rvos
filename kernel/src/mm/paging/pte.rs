@@ -1,6 +1,7 @@
 use core::fmt;
 
 use bitflags::bitflags;
+use log::trace;
 
 use crate::mm::addr::{PhysAddr, PhysPageNum};
 use crate::mm::consts::{PTE_PPN_MASK, PTEFLAGS_MASK};
@@ -55,7 +56,7 @@ impl PageTableEntry {
     }
 
     pub fn ppn(&self) -> PhysPageNum {
-        PhysPageNum((self.bits & PTE_PPN_MASK) << 2)
+        PhysPageNum((self.bits & PTE_PPN_MASK) >> 10)
     }
 
     pub fn pa(&self) -> PhysAddr {
