@@ -1,5 +1,7 @@
-use crate::Mutex;
-use alloc::{collections::btree_map::BTreeMap, vec::Vec};
+use crate::{
+    entry, mm::{addr::PhysPageNum, address_space::U_HEAP_BEG, consts::PAGE_SIZE}, Mutex
+};
+use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use bitflags::bitflags;
 
 use crate::{
@@ -28,6 +30,56 @@ impl UserSpace {
             areas: Vec::new(),
         }
     }
+
+    pub fn map_elf(&mut self, elf: &[u8]) -> usize {
+        let elf = xmas_elf::ElfFile::new(elf).expect("failed to parse ELF file");
+        for ph in elf.program_iter() {
+            if ph.get_type().expect("failed to get program header type")
+                != xmas_elf::program::Type::Load
+            {
+                continue;
+            }
+            let offset = ph.offset() as usize;
+            let start = VirtAddr(ph.virtual_addr() as usize);
+            let size = ph.mem_size() as usize;
+            let perm = ph.flags().into();
+            let mut area = UserArea::new(UserAreaType::Framed, perm, start, start + size);
+            area.map(&mut self.page_table);
+            area.copy_data(&mut self.page_table, &elf.input[offset..offset + size]);
+            self.areas.push(area);
+        }
+
+        // alloc stack
+        let stack_bottom = U_STACK_END - TASK_STACK_SIZE;
+        let stack_top = U_STACK_END;
+        let mut stack_area = UserArea::new(
+            UserAreaType::Framed,
+            UserAreaPerm::R | UserAreaPerm::W,
+            stack_bottom.into(),
+            stack_top.into(),
+        );
+        stack_area.map(&mut self.page_table);
+        self.areas.push(stack_area);
+        elf.header.pt2.entry_point() as usize
+    }
+
+    pub fn init_stack(&mut self, args: Vec<String>) -> usize {
+        todo!()
+    }
+
+    pub fn init_heap(&mut self, page_count: usize) {
+        let size = page_count * PAGE_SIZE;
+        let heap_start = U_HEAP_BEG;
+        let heap_end = heap_start + size;
+        let mut heap_area = UserArea::new(
+            UserAreaType::Framed,
+            UserAreaPerm::R | UserAreaPerm::W,
+            heap_start.into(),
+            heap_end.into(),
+        );
+        heap_area.map(&mut self.page_table);
+        self.areas.push(heap_area);
+    }
 }
 
 bitflags! {
@@ -36,6 +88,22 @@ bitflags! {
         const R = 1 << 0;
         const W = 1 << 1;
         const X = 1 << 2;
+    }
+}
+
+impl From<xmas_elf::program::Flags> for UserAreaPerm {
+    fn from(flags: xmas_elf::program::Flags) -> Self {
+        let mut perm = UserAreaPerm::empty();
+        if flags.is_read() {
+            perm |= UserAreaPerm::R;
+        }
+        if flags.is_write() {
+            perm |= UserAreaPerm::W;
+        }
+        if flags.is_execute() {
+            perm |= UserAreaPerm::X;
+        }
+        perm
     }
 }
 
@@ -55,6 +123,7 @@ impl UserAreaPerm {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum UserAreaType {
     Framed,
 }
@@ -91,9 +160,14 @@ impl UserArea {
     }
 
     pub fn map_one(&mut self, vpn: VirtPageNum, page_table: &mut PageTable) {
-        let frame = frame::alloc().expect("failed to allocate frame for user area");
-        let ppn = frame.ppn;
-        self.frames.insert(vpn, frame);
+        let ppn = match self.ty {
+            UserAreaType::Framed => {
+                let frame = frame::alloc().expect("failed to allocate frame for user area");
+                let ppn = frame.ppn;
+                self.frames.insert(vpn, frame);
+                ppn
+            }
+        };
         page_table.map(vpn, ppn, self.perm.as_pte_flag());
     }
 
@@ -104,23 +178,22 @@ impl UserArea {
     }
 
     pub fn unmap_one(&mut self, vpn: VirtPageNum, page_table: &mut PageTable) {
-        let frame = self.frames.remove(&vpn).expect("frame not found");
+        if self.ty == UserAreaType::Framed {
+            self.frames.remove(&vpn).expect("frame not found");
+        }
         page_table.unmap(vpn);
-        // TODO: frame dropped
     }
-}
 
-static STACK_ID_POOL: Mutex<UsizePool> = Mutex::new(UsizePool::new());
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StackId(usize);
-
-impl StackId {
-    pub fn stack_bottom(&self) -> VirtAddr {
-        VirtAddr(U_STACK_END - self.0 * TASK_STACK_SIZE)
+    pub fn copy_data(&self, page_table: &mut PageTable, data: &[u8]) {
+        let mut current = 0;
+        let mut iter = self.range.iter();
+        while current < data.len() {
+            let vpn = iter.next().expect("data too large");
+            let src = &data[current..data.len().min(current + PAGE_SIZE)];
+            let dst = page_table.query(vpn).unwrap().ppn().as_bytes();
+            dst[..src.len()].copy_from_slice(src);
+            current += src.len();
+            iter.next();
+        }
     }
-}
-
-pub fn alloc_stack_id() -> StackId {
-    StackId(STACK_ID_POOL.lock().alloc())
 }

@@ -136,3 +136,10 @@ impl From<PhysPageNum> for usize {
         v.0
     }
 }
+
+impl PhysPageNum {
+    pub fn as_bytes(&self) -> &'static mut [u8] {
+        let pa: PhysAddr = (*self).into();
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
+    }
+}

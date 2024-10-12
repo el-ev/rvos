@@ -13,6 +13,10 @@ pub struct UserContext {
     pub ktp: usize,          // 48
 }
 
+impl UserContext {
+    
+}
+
 impl Debug for UserContext {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "UserContext {{ uregs: [")?;
