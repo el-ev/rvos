@@ -13,6 +13,7 @@
 .macro LOAD reg, off
     ld \reg, \off*8(a0)
 .endm
+
     .globl _kernel_to_kernel_trap
     .type _kernel_to_kernel_trap, @function
 .align 3
@@ -64,6 +65,8 @@ _kernel_to_kernel_trap:
 
     .globl _kernel_to_user_trap
     .type _kernel_to_user_trap, @function
+    .align 3
+
 _kernel_to_user_trap:
     SAVE s0, 34
     SAVE s1, 35
@@ -119,12 +122,14 @@ _kernel_to_user_trap:
     LOAD x29, 29
     LOAD x30, 30
     LOAD x31, 31
-    LOAD x10, 10
+    LOAD x10, 10 // x10 is a0
     sret
     .size _kernel_to_user_trap, . - _kernel_to_user_trap
 
     .globl _user_to_kernel_trap
     .type _user_to_kernel_trap, @function
+    .align 3
+
 _user_to_kernel_trap:
     csrrw a0, sscratch, a0
 
