@@ -7,7 +7,7 @@ extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
 use log::{error, info, warn};
-use mm::address_space::KERNEL_OFFSET;
+use mm::{address_space::KERNEL_OFFSET, paging::{page_table::PageTable, switch_page_table}};
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
 
@@ -44,10 +44,13 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     info!("RVOS Started.");
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
+    mm::map_device_region();
+    // let random_pt = PageTable::from_kernel_page_table();
+    // switch_page_table(random_pt.ppn());
+    trap::set_kernel_trap();
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
-    trap::set_kernel_trap();
     timer::init();
     #[cfg(feature = "smp")]
     {
@@ -73,6 +76,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     unsafe {
         ebreak();
     }
+    task::schedule::SCHEDULER.add_processor(task::schedule::Processor::new(hartid));
     task::run()
 }
 

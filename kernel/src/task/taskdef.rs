@@ -1,8 +1,9 @@
 use core::arch::asm;
 
 use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
+use log::debug;
 
-use crate::{Mutex, trap::context::UserContext};
+use crate::{mm::{addr::PhysPageNum, paging::page_table::PageTable}, trap::context::UserContext, Mutex};
 
 use super::{
     pid::{Pid, PidHandle, alloc_pid},
@@ -15,7 +16,7 @@ unsafe impl Sync for TaskControlBlock {}
 pub struct TaskControlBlock {
     pid: PidHandle,
     parent: Option<Weak<TaskControlBlock>>,
-    context: Mutex<UserContext>,
+    context: Mutex<Box<UserContext>>,
     children: Mutex<Vec<Arc<TaskControlBlock>>>,
     memory: Mutex<UserSpace>,
     status: Mutex<TaskStatus>,
@@ -32,6 +33,18 @@ impl TaskControlBlock {
     pub fn set_status(&self, status: TaskStatus) {
         *self.status.lock() = status
     }
+
+    pub fn get_context(&self) -> *mut UserContext {
+        &mut **self.context.lock() as *mut UserContext
+    }
+
+    pub fn exit_code(&self) -> i32 {
+        self.exit_code
+    }
+
+    pub fn page_table(&self) -> PhysPageNum {
+        self.memory.lock().page_table.ppn()
+    }
 }
 
 impl TaskControlBlock {
@@ -39,7 +52,7 @@ impl TaskControlBlock {
         Arc::new(Self {
             pid: alloc_pid(),
             parent: None,
-            context: Mutex::new(UserContext::default()),
+            context: Mutex::new(Box::new(UserContext::default())),
             children: Mutex::new(Vec::new()),
             memory: Mutex::new(UserSpace::new()),
             status: Mutex::new(TaskStatus::Uninit),
@@ -62,6 +75,7 @@ impl TaskControlBlock {
         context.usstatus = sstatus;
         // TODO: arguments
         self.set_status(TaskStatus::Ready);
+        debug!("{:?}", context);
     }
 }
 

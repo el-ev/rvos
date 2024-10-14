@@ -1,7 +1,7 @@
 use core::arch::global_asm;
 
 use context::KernelContext;
-use log::debug;
+use log::{debug, trace};
 use riscv::register::{
     scause::{Exception, Scause, Trap},
     sie,
@@ -34,5 +34,16 @@ pub fn set_kernel_trap() {
         stvec::write(_kernel_to_kernel_trap as usize, TrapMode::Direct);
         sie::set_sext();
     }
-    debug!("Kernel trap vector: 0x{:x}", stvec::read().address());
+    trace!("Kernel trap vector: 0x{:x}", stvec::read().address());
+}
+
+#[inline(always)]
+pub fn set_user_trap() {
+    unsafe extern "C" {
+        fn _user_to_kernel_trap();
+    }
+    unsafe {
+        stvec::write(_user_to_kernel_trap as usize, TrapMode::Direct);
+    }
+    trace!("User trap vector: 0x{:x}", stvec::read().address());
 }

@@ -1,13 +1,16 @@
+use core::ptr::addr_of;
+
 use alloc::vec;
 use alloc::vec::Vec;
 
 use super::pte::{PageTableEntry, PteFlags};
 
 use crate::mask;
-use crate::mm::addr::VirtAddr;
+use crate::mm::addr::{kva2pa, VirtAddr};
 use crate::mm::addr::{PhysAddr, PhysPageNum, VirtPageNum, pa2kva};
 use crate::mm::consts::{PAGE_TABLE_ENTRY_COUNT as ENTRY_COUNT, PPN_WIDTH};
 use crate::mm::frame::{self, FrameTracker};
+use crate::entry::BOOT_PAGE_TABLE;
 
 impl PhysPageNum {
     fn as_page_table(&self) -> &'static mut [PageTableEntry] {
@@ -42,13 +45,31 @@ impl PageTable {
             frames: vec![frame],
         }
     }
+    
+    pub fn from_kernel_page_table() -> Self {
+        let pt = PageTable::new();
+        let pt_va = pa2kva(pt.ppn.into());
 
-    pub fn from_satp(satp: usize) -> Self {
-        let ppn = PhysPageNum(satp & mask!(PPN_WIDTH));
+        unsafe {
+            core::ptr::copy_nonoverlapping(
+                addr_of!(BOOT_PAGE_TABLE) as *const PageTableEntry,
+                pt_va.0 as *mut PageTableEntry,
+                ENTRY_COUNT,
+            );
+        }
+
+        pt
+    }
+
+    pub unsafe fn from_ppn(ppn: PhysPageNum) -> Self {
         Self {
             ppn,
-            frames: vec![],
+            frames: Vec::new(),
         }
+    }
+
+    pub fn ppn(&self) -> PhysPageNum {
+        self.ppn
     }
 
     pub fn find(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {

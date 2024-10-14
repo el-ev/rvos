@@ -1,5 +1,4 @@
 int main() {
-    while (1) {
-    }
+    *(int*)0=0xdeadbeef;
     return 0;
 }

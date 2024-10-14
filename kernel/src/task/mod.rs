@@ -14,6 +14,7 @@ const LOOP: &[u8] = include_bytes_align_as!(usize, "../../../user/loop.b");
 
 pub fn run() -> ! {
     let task = TaskControlBlock::new();
-    task.init(LOOP, vec![]);
+    task.clone().init(LOOP, vec![]);
+    schedule::SCHEDULER.add_task(task);
     schedule::SCHEDULER.main_loop()
 }

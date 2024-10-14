@@ -2,7 +2,9 @@ use alloc::{collections::vec_deque::VecDeque, sync::Arc, vec::Vec};
 use log::info;
 use sync::Lazy;
 
-use crate::Mutex;
+use core::arch::naked_asm;
+
+use crate::{mm::paging::switch_page_table, trap::{self, context::UserContext, set_kernel_trap, set_user_trap}, Mutex};
 
 use super::taskdef::TaskControlBlock;
 
@@ -59,9 +61,41 @@ impl Scheduler {
     pub fn main_loop(&self) -> ! {
         loop {
             if let Some(task) = self.get_task() {
+                let mut processor = self.processors.lock();
+                if let Some(processor) = processor.iter_mut().find(|p| p.current_task.is_none()) {
+                    processor.current_task = Some(task.clone());
+                    switch_page_table(task.page_table());
+                    set_user_trap();
+                    unsafe {
+                        _kernel_to_user_trap(task.get_context());
+                    }
+                    set_kernel_trap();
+                }
+                self.add_task(task);
             } else {
                 panic!("No task to run!");
             }
+            core::hint::spin_loop();
         }
+    }
+}
+
+unsafe extern "C" {
+    fn _kernel_to_user_trap(ctx: *mut UserContext);
+    fn _user_to_kernel_trap();
+}
+
+
+
+#[naked]
+#[unsafe(no_mangle)]
+extern "C" fn _switch() {
+    unsafe {
+        naked_asm!(
+            "
+            csrr t0, mhartid
+            slli t0, t0, 11
+            "
+        )
     }
 }

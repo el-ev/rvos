@@ -73,8 +73,7 @@ pub static mut BOOT_PAGE_TABLE: [PageTableEntry; 512] = {
     let ppn = PhysPageNum(0x80000);
     let flags = PteFlags::from_bits_truncate(0xcf); // VRWXAD
     table[2] = PageTableEntry::new(ppn, flags); // 0x0000_0000_8000_0000
-    table[448] = PageTableEntry::new(ppn, flags); // 0xffff_fff0_0000_0000
-    table[511] = PageTableEntry::new(PhysPageNum(0x0), flags);
+    table[448] = PageTableEntry::new(ppn, flags); // 0xffff_fff0_0000_0000 - 0xffff_fff0_4000_0000
     table
 };
 

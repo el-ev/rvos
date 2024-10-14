@@ -20,14 +20,15 @@ use crate::{
 };
 
 pub struct UserSpace {
-    page_table: PageTable,
+    pub page_table: PageTable,
     areas: Vec<UserArea>,
 }
 
 impl UserSpace {
     pub fn new() -> Self {
         Self {
-            page_table: PageTable::new(),
+            // TODO: new page table with kernel mapped
+            page_table: PageTable::from_kernel_page_table(),
             areas: Vec::new(),
         }
     }
