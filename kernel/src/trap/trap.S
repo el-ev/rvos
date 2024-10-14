@@ -87,9 +87,9 @@ _kernel_to_user_trap:
     csrw sscratch, a0
 
     LOAD t0, 32
-    csrw sepc, t0
-    LOAD t0, 33
     csrw scause, t0
+    LOAD t0, 33
+    csrw sepc, t0
 
     LOAD x1, 1
     LOAD x2, 2
@@ -165,9 +165,9 @@ _user_to_kernel_trap:
     SAVE x30, 30
     SAVE x31, 31
 
-    csrr t0, sepc
-    SAVE t0, 32
     csrr t0, scause
+    SAVE t0, 32
+    csrr t0, sepc
     SAVE t0, 33
 
     LOAD s0, 34
