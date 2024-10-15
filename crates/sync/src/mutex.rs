@@ -1,16 +1,12 @@
 use core::{
-    cell::UnsafeCell,
-    fmt,
-    ops::{Deref, DerefMut},
-    sync::atomic::{AtomicBool, AtomicI32, Ordering},
+    cell::UnsafeCell, fmt, i32, ops::{Deref, DerefMut}, sync::atomic::{AtomicI32, Ordering}
 };
 
 use crate::MutexHelper;
 
 pub struct Mutex<T: ?Sized, H: MutexHelper> {
     _marker: core::marker::PhantomData<H>,
-    lock: AtomicBool,
-    hartid: AtomicI32,
+    state: AtomicI32,
     data: UnsafeCell<T>,
 }
 
@@ -21,8 +17,7 @@ impl<T, H: MutexHelper> Mutex<T, H> {
     pub const fn new(data: T) -> Self {
         Self {
             _marker: core::marker::PhantomData,
-            lock: AtomicBool::new(false),
-            hartid: AtomicI32::new(-1),
+            state: AtomicI32::new(0),
             data: UnsafeCell::new(data),
         }
     }
@@ -37,30 +32,29 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         let helper_data = H::before_lock();
         let hartid = arch::get_hart_id() as i32;
         while self
-            .lock
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .state
+            .compare_exchange(0, hartid << 1 | 1, Ordering::AcqRel, Ordering::Relaxed)
             .is_err()
         {
-            let old_hartid = self.hartid.load(Ordering::Relaxed);
-            // if old_hartid == hartid {
-            //     panic!(
-            //         "Deadlock. Hart {} is trying to lock a mutex it already owns",
-            //         hartid
-            //     );
-            // }
+            let old_state = self.state.load(Ordering::Relaxed);
+            if old_state != 0 && (old_state >> 1) == hartid {
+                panic!(
+                    "Deadlock. Hart {} is trying to lock a mutex it already owns",
+                    hartid
+                );
+            }
             let mut i = 0;
-            while self.lock.load(Ordering::Relaxed) {
+            while self.state.load(Ordering::Relaxed) != 0 {
                 H::cpu_relax();
                 i += 1;
                 if i == 0x100_000 {
                     panic!(
                         "Deadlock. Hart {} is trying to lock a mutex owned by hart {}",
-                        hartid, old_hartid
+                        hartid, old_state
                     );
                 }
             }
         }
-        self.hartid.store(hartid, Ordering::Relaxed);
         MutexGuard {
             mutex: self,
             helper_data,
@@ -71,11 +65,10 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         let helper_data = H::before_lock();
         let hartid = arch::get_hart_id() as i32;
         if self
-            .lock
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .state
+            .compare_exchange(hartid << 1 | 1, 0, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
-            self.hartid.store(hartid, Ordering::Relaxed);
             Some(MutexGuard {
                 mutex: self,
                 helper_data,
@@ -93,7 +86,7 @@ pub struct MutexGuard<'a, T: ?Sized + 'a, H: MutexHelper + 'a> {
 
 impl<'a, T: ?Sized, H: MutexHelper> Drop for MutexGuard<'a, T, H> {
     fn drop(&mut self) {
-        self.mutex.lock.store(false, Ordering::Release);
+        self.mutex.state.store(0, Ordering::Release);
         H::after_lock(&self.helper_data);
     }
 }
