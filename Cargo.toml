@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["kernel", "crates/*"]
+members = ["kernel", "crates/*", "user_rust/dummy"]
 
 [profile.dev]
 opt-level = 0

@@ -29,7 +29,7 @@ QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200000
 QEMU_ARGS += -kernel $(KERNEL)
 
 build:
-	cd kernel && cargo build $(BUILDARGS)
+	cd kernel && cargo build $(BUILDARGS) --bin kernel
 
 run: build kill
 	$(QEMU) $(QEMU_ARGS)
@@ -45,13 +45,14 @@ debug_qemu: build kill
 	$(QEMU) $(QEMU_ARGS) -s -S &
 
 objdump: build
-	$(OBJDUMP) -d $(KERNEL) > kernel.asm
+	$(OBJDUMP) -DS $(KERNEL) > kernel.asm
 
 kill:
 	killall $(QEMU) > /dev/null || true
 
 user:
 	cd user && make
+	cd user_rust && cargo build $(BUILDARGS) --bin *
 clean:
 	cargo clean
 

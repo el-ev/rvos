@@ -1,10 +1,8 @@
 use core::panic::PanicInfo;
 
-use alloc::{collections::btree_map::BTreeMap, format, string::String};
+use alloc::{format, string::String};
 use arch::get_hart_id;
 use log::error;
-use rustc_demangle::demangle;
-use xmas_elf::ElfFile;
 
 use crate::mm::layout::{__text_end, __text_start};
 
@@ -60,7 +58,7 @@ fn backtrace() -> String {
                     depth,
                     current_ra - size_of::<usize>(),
                     current_fp,
-                    demangle(here)
+                    rustc_demangle::demangle(here)
                 ));
             }
             #[cfg(not(feature = "print_symbol"))]
@@ -81,16 +79,16 @@ fn backtrace() -> String {
 }
 
 #[cfg(feature = "print_symbol")]
-fn read_symbol() -> BTreeMap<(usize, usize), &'static str> {
+fn read_symbol() -> alloc::collections::btree_map::BTreeMap<(usize, usize), &'static str> {
     use xmas_elf::{
         sections::{self, ShType},
         symbol_table::Entry,
     };
 
-    let mut symbols = BTreeMap::new();
+    let mut symbols = alloc::collections::btree_map::BTreeMap::new();
     // TODO: file system
     #[cfg(debug_assertions)]
-    let elf = ElfFile::new(
+    let elf = xmas_elf::ElfFile::new(
         include_bytes!("../../target/riscv64gc-unknown-none-elf/debug/kernel").as_ref(),
     )
     .unwrap();
