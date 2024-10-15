@@ -18,7 +18,7 @@ LDFLAGS = -z max-page-size=4096
 
 INCLUDES		:= -I./include/
 USER_LIB		:= 
-USER_TARGET		:= loop.b
+USER_TARGET		:= loop.b pagefault.b
 
 .PHONY: clean
 
