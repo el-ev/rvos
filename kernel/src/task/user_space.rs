@@ -67,7 +67,7 @@ impl UserSpace {
 
     pub fn init_stack(&mut self, args: Vec<String>) -> usize {
         // TODO
-        0
+        U_STACK_END
     }
 
     pub fn init_heap(&mut self, page_count: usize) {
@@ -193,7 +193,7 @@ impl UserArea {
         while current < data.len() {
             let vpn = iter.next().expect("data too large");
             let src = &data[current..data.len().min(current + PAGE_SIZE)];
-            let dst = unsafe {page_table.query(vpn).unwrap().pa().as_mut_page_slice()};
+            let dst = unsafe { page_table.query(vpn).unwrap().pa().as_mut_page_slice() };
             dst[..src.len()].copy_from_slice(src);
             current += src.len();
             iter.next();
