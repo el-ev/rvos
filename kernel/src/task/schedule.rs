@@ -40,6 +40,8 @@ impl Scheduler {
     }
 
     pub fn main_loop(&self) -> ! {
+        // Currently all harts just busy spin until they have a task to run
+        // TODO: Better scheduling
         loop {
             core::hint::spin_loop();
             let task: Arc<TaskControlBlock>;
@@ -50,6 +52,7 @@ impl Scheduler {
                 continue;
             }
             // debug!("Hart {} is running task {:?}", tp(), task.pid());
+            // TODO: Check is the task is runnable
             // TODO: Refactor here
             let current_task = get_current_task();
             if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
@@ -67,6 +70,7 @@ impl Scheduler {
                 timer::tick();
             } else {
                 debug!("Unhandled exception: {:?}", scause.cause());
+                // debug!("Context: {:?}", unsafe {&*task.get_context()});
             }
             // debug!("Hart {} returned from user task", tp());
             self.add_task(task);

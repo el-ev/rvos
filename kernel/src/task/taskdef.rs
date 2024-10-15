@@ -24,7 +24,7 @@ pub struct TaskControlBlock {
     children: Mutex<Vec<Arc<TaskControlBlock>>>,
     memory: Mutex<UserSpace>,
     status: Mutex<TaskStatus>,
-    exit_code: i32,
+    exit_code: usize,
 }
 
 impl TaskControlBlock {
@@ -42,7 +42,7 @@ impl TaskControlBlock {
         &mut **self.context.lock() as *mut UserContext
     }
 
-    pub fn exit_code(&self) -> i32 {
+    pub fn exit_code(&self) -> usize {
         self.exit_code
     }
 
@@ -67,6 +67,7 @@ impl TaskControlBlock {
     pub fn init(self: Arc<Self>, elf: &[u8], args: Vec<String>) {
         let mut memory = self.memory.lock();
         let entry = memory.map_elf(elf);
+        // TODO: arguments
         let sp = memory.init_stack(args);
         memory.init_heap(1);
         let mut context = self.context.lock();
@@ -77,7 +78,6 @@ impl TaskControlBlock {
             asm!("csrr {0}, sstatus", out(reg) sstatus);
         }
         context.usstatus = sstatus;
-        // TODO: arguments
         self.set_status(TaskStatus::Ready);
     }
 }

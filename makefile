@@ -53,6 +53,7 @@ kill:
 user:
 	cd user && make
 	cd user_rust && cargo build $(BUILDARGS) --bin *
+	
 clean:
 	cargo clean
 

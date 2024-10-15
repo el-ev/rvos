@@ -6,7 +6,9 @@ use userlib::user_main;
 
 #[user_main]
 pub fn main() {
-    loop {}
+    loop {
+        core::hint::black_box({let x = 0;});
+    }
 }
 
 #[panic_handler]
