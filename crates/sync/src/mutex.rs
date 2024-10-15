@@ -42,12 +42,12 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
             .is_err()
         {
             let old_hartid = self.hartid.load(Ordering::Relaxed);
-            if old_hartid == hartid {
-                panic!(
-                    "Deadlock. Hart {} is trying to lock a mutex it already owns",
-                    hartid
-                );
-            }
+            // if old_hartid == hartid {
+            //     panic!(
+            //         "Deadlock. Hart {} is trying to lock a mutex it already owns",
+            //         hartid
+            //     );
+            // }
             let mut i = 0;
             while self.lock.load(Ordering::Relaxed) {
                 H::cpu_relax();

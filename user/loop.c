@@ -1,4 +1,4 @@
 int main() {
-    *(int*)0=0xdeadbeef;
+    while(1);
     return 0;
 }

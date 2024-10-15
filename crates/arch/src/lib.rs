@@ -31,6 +31,15 @@ pub fn sp() -> usize {
 }
 
 #[inline(always)]
+pub fn tp() -> usize {
+    let mut value: usize;
+    unsafe {
+        asm!("mv {}, tp", out(reg) value);
+    }
+    value
+}
+
+#[inline(always)]
 pub fn wfi() {
     unsafe {
         asm!("wfi");
@@ -57,4 +66,22 @@ pub fn disable_sie() {
 #[inline]
 pub fn read_sie() -> bool {
     sstatus::read().sie()
+}
+
+pub struct SIEGuard(bool);
+
+impl SIEGuard {
+    pub fn new() -> Self {
+        let sie = read_sie();
+        disable_sie();
+        SIEGuard(sie)
+    }
+}
+
+impl Drop for SIEGuard {
+    fn drop(&mut self) {
+        if self.0 {
+            enable_sie();
+        }
+    }
 }

@@ -5,6 +5,7 @@ use taskdef::TaskControlBlock;
 
 use crate::include_bytes_align_as;
 
+pub mod hart;
 pub mod pid;
 pub mod schedule;
 pub mod taskdef;

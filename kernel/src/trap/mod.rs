@@ -32,9 +32,9 @@ pub fn set_kernel_trap() {
     }
     unsafe {
         stvec::write(_kernel_to_kernel_trap as usize, TrapMode::Direct);
-        sie::set_sext();
+        // sie::set_sext();
     }
-    trace!("Kernel trap vector: 0x{:x}", stvec::read().address());
+    // trace!("Kernel trap vector: 0x{:x}", stvec::read().address());
 }
 
 #[inline(always)]
@@ -45,5 +45,5 @@ pub fn set_user_trap() {
     unsafe {
         stvec::write(_user_to_kernel_trap as usize, TrapMode::Direct);
     }
-    trace!("User trap vector: 0x{:x}", stvec::read().address());
+    // trace!("User trap vector: 0x{:x}", stvec::read().address());
 }

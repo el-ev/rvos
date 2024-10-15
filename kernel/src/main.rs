@@ -7,7 +7,7 @@ extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
 use log::{error, info, warn};
-use mm::{address_space::KERNEL_OFFSET, paging::{page_table::PageTable, switch_page_table}};
+use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
 
@@ -45,8 +45,6 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
     mm::map_device_region();
-    // let random_pt = PageTable::from_kernel_page_table();
-    // switch_page_table(random_pt.ppn());
     trap::set_kernel_trap();
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
@@ -76,17 +74,16 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     unsafe {
         ebreak();
     }
-    task::schedule::SCHEDULER.add_processor(task::schedule::Processor::new(hartid));
     task::run()
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn parking(hartid: usize) -> ! {
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-    task::schedule::SCHEDULER.add_processor(task::schedule::Processor::new(hartid));
-    loop {
-        arch::wfi();
-    }
+    trap::set_kernel_trap();
+    timer::init();
+    info!("Hart {} started.", hartid);
+    task::schedule::SCHEDULER.main_loop()
 }
 
 fn clear_bss() {

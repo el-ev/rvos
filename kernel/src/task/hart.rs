@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use arch::tp;
 use sync::Lazy;
 
-use crate::{config::CPU_NUM, Mutex};
+use crate::{Mutex, config::CPU_NUM};
 
 use super::taskdef::TaskControlBlock;
 

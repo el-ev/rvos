@@ -3,7 +3,11 @@ use core::arch::asm;
 use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
 use log::debug;
 
-use crate::{mm::{addr::PhysPageNum, paging::page_table::PageTable}, trap::context::UserContext, Mutex};
+use crate::{
+    Mutex,
+    mm::{addr::PhysPageNum, paging::page_table::PageTable},
+    trap::context::UserContext,
+};
 
 use super::{
     pid::{Pid, PidHandle, alloc_pid},
@@ -75,7 +79,6 @@ impl TaskControlBlock {
         context.usstatus = sstatus;
         // TODO: arguments
         self.set_status(TaskStatus::Ready);
-        debug!("{:?}", context);
     }
 }
 

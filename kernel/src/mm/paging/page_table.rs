@@ -5,12 +5,12 @@ use alloc::vec::Vec;
 
 use super::pte::{PageTableEntry, PteFlags};
 
+use crate::entry::BOOT_PAGE_TABLE;
 use crate::mask;
-use crate::mm::addr::{kva2pa, VirtAddr};
 use crate::mm::addr::{PhysAddr, PhysPageNum, VirtPageNum, pa2kva};
+use crate::mm::addr::{VirtAddr, kva2pa};
 use crate::mm::consts::{PAGE_TABLE_ENTRY_COUNT as ENTRY_COUNT, PPN_WIDTH};
 use crate::mm::frame::{self, FrameTracker};
-use crate::entry::BOOT_PAGE_TABLE;
 
 impl PhysPageNum {
     fn as_page_table(&self) -> &'static mut [PageTableEntry] {
@@ -45,7 +45,7 @@ impl PageTable {
             frames: vec![frame],
         }
     }
-    
+
     pub fn from_kernel_page_table() -> Self {
         let pt = PageTable::new();
         let pt_va = pa2kva(pt.ppn.into());
