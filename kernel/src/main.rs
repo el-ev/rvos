@@ -41,7 +41,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
     clear_bss();
     logging::init();
     print!("{}", BANNER);
-    info!("RVOS Started.");
+    info!("RVOS Started on hart {}", hartid);
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     mm::init();
     mm::map_device_region();

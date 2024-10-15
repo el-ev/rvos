@@ -1,10 +1,8 @@
 use core::arch::global_asm;
 
 use context::KernelContext;
-use log::{debug, trace};
 use riscv::register::{
     scause::{Exception, Scause, Trap},
-    sie,
     stvec::{self, TrapMode},
 };
 
@@ -32,7 +30,6 @@ pub fn set_kernel_trap() {
     }
     unsafe {
         stvec::write(_kernel_to_kernel_trap as usize, TrapMode::Direct);
-        // sie::set_sext();
     }
     // trace!("Kernel trap vector: 0x{:x}", stvec::read().address());
 }

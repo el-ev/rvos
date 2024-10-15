@@ -10,10 +10,7 @@ use sync::Lazy;
 use core::arch::naked_asm;
 
 use crate::{
-    Mutex,
-    mm::paging::switch_page_table,
-    timer,
-    trap::{self, context::UserContext, set_kernel_trap, set_user_trap},
+    mm::paging::switch_page_table, print, println, timer, trap::{self, context::UserContext, set_kernel_trap, set_user_trap}, Mutex
 };
 
 use super::{
@@ -52,6 +49,7 @@ impl Scheduler {
                 // debug!("Hart {} has no task to run", tp());
                 continue;
             }
+            // debug!("Hart {} is running task {:?}", tp(), task.pid());
             // TODO: Refactor here
             let current_task = get_current_task();
             if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
@@ -79,17 +77,4 @@ impl Scheduler {
 unsafe extern "C" {
     fn _kernel_to_user(ctx: *mut UserContext);
     fn _user_to_kernel_trap();
-}
-
-#[naked]
-#[unsafe(no_mangle)]
-extern "C" fn _switch() {
-    unsafe {
-        naked_asm!(
-            "
-            csrr t0, mhartid
-            slli t0, t0, 11
-            "
-        )
-    }
 }

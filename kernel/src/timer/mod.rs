@@ -20,7 +20,7 @@ pub fn init() {
         sstatus::set_sie();
     }
     set_next_timeout();
-    info!("timer initialized.");
+    info!("timer initialized for hart {}", tp());
 }
 
 pub fn set_next_timeout() {
@@ -45,15 +45,15 @@ pub fn get_time_usec() -> usize {
 
 pub fn tick() {
     set_next_timeout();
-    if unsafe {tp() != 0} {
-        return;
-    }
-    unsafe {
-        TICKS += 1;
-    }
-    if unsafe {
-        TICKS
-    } % INTERRUPT_PER_SEC == 0 {
-        info!("{} seconds passed.", get_time_sec());
-    }
+    // if unsafe {tp() != 0} {
+    //     return;
+    // }
+    // unsafe {
+    //     TICKS += 1;
+    // }
+    // if unsafe {
+    //     TICKS
+    // } % INTERRUPT_PER_SEC == 0 {
+    //     info!("{} seconds passed.", get_time_sec());
+    // }
 }

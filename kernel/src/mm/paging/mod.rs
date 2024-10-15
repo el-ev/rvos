@@ -18,7 +18,7 @@ pub fn switch_page_table(pt: PhysPageNum) -> PhysPageNum {
         riscv::register::satp::set(riscv::register::satp::Mode::Sv39, 0, pt.0);
         riscv::asm::sfence_vma_all();
     }
-    debug!("Switched page table to 0x{:x}", pt.0 * PAGE_SIZE);
+    // debug!("Switched page table to 0x{:x}", pt.0 * PAGE_SIZE);
     PhysPageNum(old_pt)
 }
 

@@ -15,8 +15,8 @@ pub struct HartLocal {
 
 static mut HART_LOCAL: Lazy<[Mutex<HartLocal>; CPU_NUM]> = Lazy::new(|| {
     let mut array = [const { MaybeUninit::uninit() }; CPU_NUM];
-    for i in 0..CPU_NUM {
-        array[i] = MaybeUninit::new(Mutex::new(HartLocal {
+    for (i, elem) in array.iter_mut().enumerate() {
+        *elem = MaybeUninit::new(Mutex::new(HartLocal {
             hart_id: i,
             current_task: None,
         }));
