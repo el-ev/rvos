@@ -67,7 +67,7 @@ impl Scheduler {
                     switch_page_table(task.page_table());
                     set_user_trap();
                     unsafe {
-                        _kernel_to_user_trap(task.get_context());
+                        _kernel_to_user(task.get_context());
                     }
                     set_kernel_trap();
                 }
@@ -81,7 +81,7 @@ impl Scheduler {
 }
 
 unsafe extern "C" {
-    fn _kernel_to_user_trap(ctx: *mut UserContext);
+    fn _kernel_to_user(ctx: *mut UserContext);
     fn _user_to_kernel_trap();
 }
 

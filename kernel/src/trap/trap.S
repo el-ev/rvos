@@ -63,11 +63,11 @@ _kernel_to_kernel_trap:
     sret
     .size _kernel_to_kernel_trap, . - _kernel_to_kernel_trap
 
-    .globl _kernel_to_user_trap
-    .type _kernel_to_user_trap, @function
+    .globl _kernel_to_user
+    .type _kernel_to_user, @function
     .align 3
 
-_kernel_to_user_trap:
+_kernel_to_user:
     SAVE s0, 34
     SAVE s1, 35
     SAVE s2, 36
@@ -124,7 +124,7 @@ _kernel_to_user_trap:
     LOAD x31, 31
     LOAD x10, 10 // x10 is a0
     sret
-    .size _kernel_to_user_trap, . - _kernel_to_user_trap
+    .size _kernel_to_user, . - _kernel_to_user
 
     .globl _user_to_kernel_trap
     .type _user_to_kernel_trap, @function
