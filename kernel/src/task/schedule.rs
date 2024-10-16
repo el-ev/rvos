@@ -1,21 +1,20 @@
 use alloc::{collections::vec_deque::VecDeque, sync::Arc, vec::Vec};
-use arch::{tp, SIEGuard};
+use arch::{SIEGuard, tp};
 use log::{debug, info};
 use riscv::register::{
-    scause::{self, Interrupt, Trap},
-    sscratch,
+ scause::{self, Interrupt, Trap, Exception}, sscratch
 };
 use sync::Lazy;
 
 use core::arch::naked_asm;
 
 use crate::{
-    mm::paging::switch_page_table, print, println, timer, trap::{self, context::UserContext, set_kernel_trap, set_user_trap}, Mutex
+    mm::paging::switch_page_table, print, println, syscall, timer, trap::{self, context::UserContext, set_kernel_trap, set_user_trap}, Mutex
 };
 
 use super::{
     hart::{get_current_task, set_current_task},
-    taskdef::TaskControlBlock,
+    taskdef::{TaskControlBlock, TaskStatus},
 };
 
 pub static SCHEDULER: Lazy<Scheduler> = Lazy::new(Scheduler::new);
@@ -59,19 +58,30 @@ impl Scheduler {
                 switch_page_table(task.page_table());
                 set_current_task(task.clone());
             }
+            task.set_status(TaskStatus::Running);
+
+            // Switch to user space
             set_user_trap();
             unsafe {
                 _kernel_to_user(task.get_context());
             }
             set_kernel_trap();
+
             // TODO: Exception handling here
             let scause = scause::read();
-            if scause.cause() == Trap::Interrupt(Interrupt::SupervisorTimer) {
-                timer::tick();
-            } else {
-                debug!("Unhandled exception: {:?}", scause.cause());
-                // debug!("Context: {:?}", unsafe {&*task.get_context()});
-            }
+            // if scause.cause() == Trap::Interrupt(Interrupt::SupervisorTimer) {
+            //     timer::tick();
+            // } else {
+            //     debug!("Unhandled exception: {:?}", scause.cause());
+            //     // debug!("Context: {:?}", unsafe {&*task.get_context()});
+            // }
+            match scause.cause() {
+                Trap::Interrupt(Interrupt::SupervisorTimer) => timer::tick(),
+                Trap::Exception(Exception::SupervisorEnvCall) => syscall::do_syscall(task.clone()),
+                _ => panic!("Unhandled exception(interrupt): {:?}", scause.cause()),
+            };
+            // TODO: Handle exit
+            task.set_status(TaskStatus::Ready);
             // debug!("Hart {} returned from user task", tp());
             self.add_task(task);
         }

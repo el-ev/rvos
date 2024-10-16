@@ -20,6 +20,7 @@ mod entry;
 mod logging;
 mod mm;
 mod panic;
+mod syscall;
 mod task;
 mod timer;
 mod trap;
