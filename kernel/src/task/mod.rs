@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use alloc::vec;
+use alloc::{task, vec};
 use taskdef::TaskControlBlock;
 
 use crate::include_bytes_align_as;
@@ -18,8 +18,8 @@ pub fn run() -> ! {
     let task = TaskControlBlock::new();
     task.clone().init(LOOP, vec![]);
     schedule::SCHEDULER.add_task(task);
-    // let task = TaskControlBlock::new();
-    // task.clone().init(PAGEFAULT, vec![]);
-    // schedule::SCHEDULER.add_task(task);
+    let task = TaskControlBlock::new();
+    task.clone().init(PAGEFAULT, vec![]);
+    schedule::SCHEDULER.add_task(task);
     schedule::SCHEDULER.main_loop()
 }

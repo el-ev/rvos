@@ -1,7 +1,7 @@
-use core::arch::asm;
+use core::{arch::asm, sync::atomic::{AtomicBool, AtomicUsize, Ordering}};
 
 use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
-use log::debug;
+use log::{debug, trace};
 
 use crate::{
     Mutex,
@@ -24,7 +24,8 @@ pub struct TaskControlBlock {
     children: Mutex<Vec<Arc<TaskControlBlock>>>,
     memory: Mutex<UserSpace>,
     status: Mutex<TaskStatus>,
-    exit_code: usize,
+    is_exited: AtomicBool,
+    exit_code: AtomicUsize,
 }
 
 impl TaskControlBlock {
@@ -38,12 +39,27 @@ impl TaskControlBlock {
         *self.status.lock() = status
     }
 
-    pub fn get_context(&self) -> *mut UserContext {
+    pub fn get_context(&self) -> &'static UserContext {
+        unsafe { &*(&**self.context.lock() as *const UserContext) }
+    }
+
+    pub fn get_context_ptr(&self) -> *mut UserContext {
         &mut **self.context.lock() as *mut UserContext
     }
 
+    pub fn exit(&self) {
+        if self.is_exited.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+            // self.set_status(TaskStatus::Zombie);
+            self.exit_code.store(self.get_context().uregs[10], Ordering::Relaxed);
+        }
+    }
+
+    pub fn is_exited(&self) -> bool {
+        self.is_exited.load(Ordering::Acquire)
+    }
+
     pub fn exit_code(&self) -> usize {
-        self.exit_code
+        self.exit_code.load(Ordering::Relaxed)
     }
 
     pub fn page_table(&self) -> PhysPageNum {
@@ -60,7 +76,8 @@ impl TaskControlBlock {
             children: Mutex::new(Vec::new()),
             memory: Mutex::new(UserSpace::new()),
             status: Mutex::new(TaskStatus::Uninit),
-            exit_code: 0,
+            is_exited: AtomicBool::new(false),
+            exit_code: AtomicUsize::new(0),
         })
     }
 
@@ -80,6 +97,11 @@ impl TaskControlBlock {
         context.usstatus = sstatus;
         self.set_status(TaskStatus::Ready);
     }
+
+    pub fn do_exit(&self) {
+        // TODO cleanup
+        trace!("Task {:?} exited with code {}", self.pid(), self.exit_code());
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -87,6 +109,5 @@ pub enum TaskStatus {
     Uninit,
     Ready,
     Running,
-    Sleeping,
-    Zombie,
+    Exited,
 }

@@ -61,7 +61,7 @@ extern "C" fn kernel_main(hartid: usize, _dtb_pa: usize) -> ! {
         let mut i = 0;
         loop {
             i += 1;
-            if i > 1000000 {
+            if i > 100000 {
                 warn!("Some harts failed to start.");
                 break;
             }
