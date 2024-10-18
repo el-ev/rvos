@@ -6,7 +6,7 @@
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
-use log::{error, info, warn};
+use log::{error, info};
 use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
@@ -18,6 +18,7 @@ mod config;
 mod console;
 mod drivers;
 mod entry;
+mod error;
 mod logging;
 mod mm;
 mod panic;

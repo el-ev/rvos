@@ -2,8 +2,9 @@ use core::fmt::{self, Display};
 
 use alloc::sync::Arc;
 
-use crate::{mm::address_space::U_END, task::taskdef::TaskControlBlock};
+use crate::{mask, mm::{addr::VirtAddr, address_space::U_END, consts::PAGE_SIZE_BITS, paging::pte::PteFlags}, task::{taskdef::TaskControlBlock, user_space::UserAreaPerm}};
 
+#[derive(Clone)]
 pub struct UnsafeUserString {
     task: Arc<TaskControlBlock>,
     ptr: *const u8,
@@ -23,8 +24,19 @@ impl UnsafeUserString {
         if self.ptr as usize >= U_END {
             return None;
         }
-        
-        None
+        let mut vpn = VirtAddr(self.ptr as usize).floor_page();
+        let end = VirtAddr(self.ptr as usize + self.len).ceil_page();
+        while vpn < end {
+            // let pte = self.task.page_table().query(vpn);
+            // if pte.is_none() || !pte.unwrap().flags().contains(PteFlags::U | PteFlags::V | PteFlags::R) {
+            //     return None;
+            // }
+            if !self.task.memory().lock().check_perm(vpn, UserAreaPerm::R) {
+                return None;
+            }
+            vpn += 1;
+        }
+        Some(UserString { inner: self.clone() })
     }
 }
 

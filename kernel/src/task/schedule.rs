@@ -7,10 +7,15 @@ use riscv::register::{
 };
 use sync::Lazy;
 
-use core::{arch::naked_asm, sync::atomic::AtomicUsize};
+use core::{
+    arch::naked_asm,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use crate::{
     Mutex,
+    config::MAX_TASKS,
+    error::OsError,
     mm::paging::switch_page_table,
     print, println, syscall, timer,
     trap::{self, context::UserContext, set_kernel_trap, set_user_trap},
@@ -36,9 +41,27 @@ impl Scheduler {
         }
     }
 
-    pub fn add_task(&self, task: Arc<TaskControlBlock>) {
-        self.alive_task_count.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-        self.tasks.lock().push_back(task);
+    pub fn add_task(&self, task: Arc<TaskControlBlock>) -> Result<(), OsError> {
+        loop {
+            let current_count = self.alive_task_count.load(Ordering::Relaxed);
+            if current_count >= MAX_TASKS {
+                return Err(OsError::NoFreeTask);
+            }
+            if self
+                .alive_task_count
+                .compare_exchange(
+                    current_count,
+                    current_count + 1,
+                    Ordering::Acquire,
+                    Ordering::Relaxed,
+                )
+                .ok()
+                == Some(current_count)
+            {
+                self.tasks.lock().push_back(task);
+                return Ok(());
+            }
+        }
     }
 
     pub fn get_task(&self) -> Option<Arc<TaskControlBlock>> {
@@ -50,7 +73,11 @@ impl Scheduler {
         // TODO: Better scheduling
         loop {
             core::hint::spin_loop();
-            if self.alive_task_count.load(core::sync::atomic::Ordering::SeqCst) == 0 {
+            if self
+                .alive_task_count
+                .load(core::sync::atomic::Ordering::SeqCst)
+                == 0
+            {
                 panic!("No task to run");
             }
             let task: Arc<TaskControlBlock>;
@@ -61,13 +88,26 @@ impl Scheduler {
                 continue;
             }
             //debug!("Hart {} is running task {:?}", tp(), task.pid());
-            if task.status() != TaskStatus::Ready {
-                panic!("Task {:?} is {:?}, expected Ready", task.pid(), task.status());
+            match task.status() {
+                TaskStatus::Sleeping => {
+                    self.add_task(task);
+                    continue;
+                }
+                TaskStatus::Exited => {
+                    task.do_exit();
+                    self.alive_task_count
+                        .fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
+                    continue;
+                }
+                TaskStatus::Ready => {}
+                _ => {
+                    panic!("Task {:?} is in an invalid state: {:?}", task.pid(), task.status());
+                }
             }
             // TODO: Refactor here
             let current_task = get_current_task();
             if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
-                switch_page_table(task.page_table());
+                switch_page_table(task.page_table().ppn());
                 set_current_task(task.clone());
             }
             task.set_status(TaskStatus::Running);
@@ -81,14 +121,16 @@ impl Scheduler {
             let scause = scause::read();
             match scause.cause() {
                 Trap::Interrupt(i) => match i {
-                    Interrupt::SupervisorTimer => {timer::tick()},
+                    Interrupt::SupervisorTimer => timer::tick(),
                     _ => {
                         panic!("Unhandled interrupt: {:?}", i);
                     }
                 },
                 Trap::Exception(e) => match e {
                     Exception::UserEnvCall => syscall::do_syscall(task.clone()),
-                    Exception::LoadPageFault | Exception::StorePageFault | Exception::InstructionPageFault => {
+                    Exception::LoadPageFault
+                    | Exception::StorePageFault
+                    | Exception::InstructionPageFault => {
                         // kill for now
                         // TODO Handle page fault
                         warn!(
@@ -98,7 +140,9 @@ impl Scheduler {
                         );
                         task.exit();
                     }
-                    Exception::IllegalInstruction | Exception::InstructionFault | Exception::InstructionMisaligned => {
+                    Exception::IllegalInstruction
+                    | Exception::InstructionFault
+                    | Exception::InstructionMisaligned => {
                         warn!(
                             "User Illegal instruction, killed. Pid: {:?}, sepc: {:#x}",
                             task.pid(),
@@ -107,13 +151,19 @@ impl Scheduler {
                         task.exit();
                     }
                     _ => {
-                        panic!("Unhandled exception: {:?}, pid: {:?}, context: {:?}", e, task.pid(), task.get_context());
+                        panic!(
+                            "Unhandled exception: {:?}, pid: {:?}, context: {:?}",
+                            e,
+                            task.pid(),
+                            task.get_context()
+                        );
                     }
                 },
             };
             if task.is_exited() {
                 task.do_exit();
-                self.alive_task_count.fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
+                self.alive_task_count
+                    .fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
             } else {
                 task.set_status(TaskStatus::Ready);
                 self.add_task(task);

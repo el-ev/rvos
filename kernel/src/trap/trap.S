@@ -185,6 +185,5 @@ _user_to_kernel_trap:
     LOAD ra, 46
     LOAD sp, 47
     LOAD tp, 48
-    // TODO Error Handling
     ret
     .size _user_to_kernel_trap, . - _user_to_kernel_trap

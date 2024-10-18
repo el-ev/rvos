@@ -3,7 +3,7 @@ use core::fmt;
 use alloc::vec::Vec;
 use log::{info, warn};
 
-use crate::{Mutex, prev_pow_of_2};
+use crate::{error::OsError, prev_pow_of_2, Mutex};
 
 use super::{
     addr::{PhysAddr, PhysPageNum, pa2kva},
@@ -154,7 +154,7 @@ pub fn init(start: PhysAddr, end: PhysAddr) {
     );
 }
 
-pub fn alloc_frames(size: usize, align: usize) -> Option<Vec<FrameTracker>> {
+pub fn alloc_frames(size: usize, align: usize) -> Result<Vec<FrameTracker>, OsError> {
     let frame = FRAME_ALLOCATOR.lock().alloc(size, align);
     if let Some(frame) = frame {
         unsafe {
@@ -170,10 +170,10 @@ pub fn alloc_frames(size: usize, align: usize) -> Option<Vec<FrameTracker>> {
         (0..size)
             .map(|i| FrameTracker::new(PhysPageNum(frame.0 + i)))
             .collect()
-    })
+    }).ok_or(OsError::NoMem)
 }
 
-pub fn alloc() -> Option<FrameTracker> {
+pub fn alloc() -> Result<FrameTracker, OsError> {
     alloc_frames(1, 1).map(|mut v| v.pop().unwrap())
 }
 

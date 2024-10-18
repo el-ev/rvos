@@ -47,6 +47,14 @@ impl TaskControlBlock {
         &mut **self.context.lock() as *mut UserContext
     }
 
+    pub fn syscall_no(&self) -> usize {
+        self.get_context().uregs[17]
+    }
+
+    pub fn syscall_args(&self) -> [usize; 6] {
+        self.get_context().uregs[10..16].try_into().unwrap()
+    }
+
     pub fn exit(&self) {
         if self.is_exited.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
             // self.set_status(TaskStatus::Zombie);
@@ -62,8 +70,12 @@ impl TaskControlBlock {
         self.exit_code.load(Ordering::Relaxed)
     }
 
-    pub fn page_table(&self) -> PhysPageNum {
-        self.memory.lock().page_table.ppn()
+    pub fn page_table(&self) -> PageTable {
+        unsafe { PageTable::from_ppn(self.memory.lock().page_table.ppn()) }
+    }
+
+    pub fn memory(&self) -> &Mutex<UserSpace> {
+        &self.memory
     }
 }
 
@@ -90,6 +102,7 @@ impl TaskControlBlock {
         let mut context = self.context.lock();
         context.sepc = entry;
         context.uregs[2] = sp;
+        // TODO argc, argv
         let sstatus: usize;
         unsafe {
             asm!("csrr {0}, sstatus", out(reg) sstatus);
@@ -109,5 +122,6 @@ pub enum TaskStatus {
     Uninit,
     Ready,
     Running,
+    Sleeping,
     Exited,
 }

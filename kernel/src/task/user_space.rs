@@ -83,6 +83,16 @@ impl UserSpace {
         heap_area.map(&mut self.page_table);
         self.areas.push(heap_area);
     }
+
+    pub fn check_perm(&self, vpn: VirtPageNum, perm: UserAreaPerm) -> bool {
+        // TODO BTreeMap
+        for area in &self.areas {
+            if area.range().contains(vpn) {
+                return area.perm().contains(perm);
+            }
+        }
+        false
+    }
 }
 
 bitflags! {

@@ -11,7 +11,7 @@ pub mod hart;
 pub mod pid;
 pub mod schedule;
 pub mod taskdef;
-mod user_space;
+pub mod user_space;
 
 const LOOP: &[u8] = include_bytes_align_as!(usize, "../../../target/riscv64gc-unknown-none-elf/debug/dummy");
 const PAGEFAULT: &[u8] = include_bytes_align_as!(usize, "../../../user/pagefault.b");
@@ -24,7 +24,7 @@ pub fn run() -> ! {
     // schedule::SCHEDULER.add_task(task);
     let task = TaskControlBlock::new();
     task.clone().init(PAGEFAULT, vec![]);
-    schedule::SCHEDULER.add_task(task);
+    let _ = schedule::SCHEDULER.add_task(task);
     TASK_PREPARED.store(true, core::sync::atomic::Ordering::SeqCst);
     schedule::SCHEDULER.main_loop()
 }
