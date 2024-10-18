@@ -11,7 +11,7 @@ pub fn user_main(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[naked]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn _start() -> ! {
             unsafe {
                 core::arch::naked_asm!(

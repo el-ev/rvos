@@ -4,6 +4,6 @@ target = "riscv64gc-unknown-none-elf"
 [target.riscv64gc-unknown-none-elf]
 linker = "rust-lld"
 rustflags = [
-    "-Clink-arg=-Tcrates/userlib/src/linker.lds",
+    "-Clink-arg=-Tcrates/userlib_macro/src/linker.lds",
     "-Cforce-frame-pointers=yes",
 ]
