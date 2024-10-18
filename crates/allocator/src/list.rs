@@ -87,7 +87,7 @@ pub struct IterMut<'a> {
     _marker: PhantomData<&'a mut List>,
 }
 
-impl<'a> Iterator for Iter<'a> {
+impl Iterator for Iter<'_> {
     type Item = *mut usize;
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr.is_null() {
@@ -102,7 +102,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl<'a> Iterator for IterMut<'a> {
+impl Iterator for IterMut<'_> {
     type Item = Node;
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr.is_null() {

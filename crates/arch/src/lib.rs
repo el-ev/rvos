@@ -78,6 +78,12 @@ impl SIEGuard {
     }
 }
 
+impl Default for SIEGuard {
+    fn default() -> Self {
+        SIEGuard::new()
+    }
+}
+
 impl Drop for SIEGuard {
     fn drop(&mut self) {
         if self.0 {

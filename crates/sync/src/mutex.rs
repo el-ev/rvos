@@ -1,5 +1,5 @@
 use core::{
-    cell::UnsafeCell, fmt, i32, ops::{Deref, DerefMut}, sync::atomic::{AtomicI32, Ordering}
+    cell::UnsafeCell, fmt, ops::{Deref, DerefMut}, sync::atomic::{AtomicI32, Ordering}
 };
 
 use crate::MutexHelper;
@@ -84,14 +84,14 @@ pub struct MutexGuard<'a, T: ?Sized + 'a, H: MutexHelper + 'a> {
     helper_data: H::HelperData,
 }
 
-impl<'a, T: ?Sized, H: MutexHelper> Drop for MutexGuard<'a, T, H> {
+impl<T: ?Sized, H: MutexHelper> Drop for MutexGuard<'_, T, H> {
     fn drop(&mut self) {
         self.mutex.state.store(0, Ordering::Release);
         H::after_lock(&self.helper_data);
     }
 }
 
-impl<'a, T: ?Sized, H: MutexHelper> Deref for MutexGuard<'a, T, H> {
+impl<T: ?Sized, H: MutexHelper> Deref for MutexGuard<'_, T, H> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -99,7 +99,7 @@ impl<'a, T: ?Sized, H: MutexHelper> Deref for MutexGuard<'a, T, H> {
     }
 }
 
-impl<'a, T: ?Sized, H: MutexHelper> DerefMut for MutexGuard<'a, T, H> {
+impl<T: ?Sized, H: MutexHelper> DerefMut for MutexGuard<'_, T, H> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.mutex.data.get() }
     }
