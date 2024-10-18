@@ -10,6 +10,7 @@ use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
+use task::TASK_PREPARED;
 
 pub type Mutex<T> = sync::SpinNoIrqMutex<T>;
 
@@ -84,6 +85,9 @@ extern "C" fn parking(hartid: usize) -> ! {
     trap::set_kernel_trap();
     timer::init();
     info!("Hart {} started.", hartid);
+    while !TASK_PREPARED.load(core::sync::atomic::Ordering::SeqCst) {
+        core::hint::spin_loop();
+    }
     task::schedule::SCHEDULER.main_loop()
 }
 

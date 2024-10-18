@@ -1,4 +1,3 @@
-int main() {
-    int *ptr = (int*)0x0;
-    *ptr = 0;
+void main() {
+    *(int*)0x0 = 0;
 }

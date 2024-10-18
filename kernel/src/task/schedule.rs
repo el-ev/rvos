@@ -7,7 +7,7 @@ use riscv::register::{
 };
 use sync::Lazy;
 
-use core::arch::naked_asm;
+use core::{arch::naked_asm, sync::atomic::AtomicUsize};
 
 use crate::{
     Mutex,
@@ -24,17 +24,20 @@ use super::{
 pub static SCHEDULER: Lazy<Scheduler> = Lazy::new(Scheduler::new);
 
 pub struct Scheduler {
+    alive_task_count: AtomicUsize,
     tasks: Mutex<VecDeque<Arc<TaskControlBlock>>>,
 }
 
 impl Scheduler {
     pub fn new() -> Self {
         Self {
+            alive_task_count: AtomicUsize::new(0),
             tasks: Mutex::new(VecDeque::new()),
         }
     }
 
     pub fn add_task(&self, task: Arc<TaskControlBlock>) {
+        self.alive_task_count.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
         self.tasks.lock().push_back(task);
     }
 
@@ -47,7 +50,9 @@ impl Scheduler {
         // TODO: Better scheduling
         loop {
             core::hint::spin_loop();
-            
+            if self.alive_task_count.load(core::sync::atomic::Ordering::SeqCst) == 0 {
+                panic!("No task to run");
+            }
             let task: Arc<TaskControlBlock>;
             if let Some(taskk) = self.get_task() {
                 task = taskk.clone();
@@ -87,7 +92,7 @@ impl Scheduler {
                         // kill for now
                         // TODO Handle page fault
                         warn!(
-                            "User page fault, pid: {:?}, sepc: {:#x}",
+                            "User page fault, killed. Pid: {:?}, sepc: {:#x}",
                             task.pid(),
                             task.get_context().sepc,
                         );
@@ -95,7 +100,7 @@ impl Scheduler {
                     }
                     Exception::IllegalInstruction | Exception::InstructionFault | Exception::InstructionMisaligned => {
                         warn!(
-                            "User Illegal instruction, pid: {:?}, sepc: {:#x}",
+                            "User Illegal instruction, killed. Pid: {:?}, sepc: {:#x}",
                             task.pid(),
                             task.get_context().sepc,
                         );
@@ -108,6 +113,7 @@ impl Scheduler {
             };
             if task.is_exited() {
                 task.do_exit();
+                self.alive_task_count.fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
             } else {
                 task.set_status(TaskStatus::Ready);
                 self.add_task(task);
