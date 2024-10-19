@@ -56,5 +56,6 @@ user:
 	
 clean:
 	cargo clean
+	cd user && make clean
 
 .PHONY: run debug objdump kill clean user

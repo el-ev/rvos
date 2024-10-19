@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use crate::task::taskdef::TaskControlBlock;
+use crate::{error::OsError, task::taskdef::TaskControlBlock};
 
 #[repr(usize)]
 enum Syscall {
@@ -54,10 +54,14 @@ impl From<usize> for Syscall {
 }
 
 pub fn do_syscall(task: Arc<TaskControlBlock>) {
-    
-}
-
-fn sys_env_destroy(task: Arc<TaskControlBlock>) {
-    
-    task.exit();
+    let syscall = Syscall::from(task.syscall_no());
+    let ctx = task.get_context_mut();
+    ctx.sepc += 4;
+    if let Syscall::Unhandled = syscall {
+        ctx.uregs[10] = OsError::BadSyscall as usize;
+    }
+    let args = task.syscall_args();
+    match syscall {
+        _ => todo!()
+    }
 }

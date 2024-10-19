@@ -7,7 +7,7 @@ use userlib_macro::user_main;
 #[user_main]
 pub fn main() {
     loop {
-        core::hint::black_box({let _x = 0;});
+        core::hint::black_box({let  _x = 0;});
     }
 }
 

@@ -4,6 +4,7 @@ use crate::{
 };
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use bitflags::bitflags;
+use log::debug;
 
 use crate::{
     config::TASK_STACK_SIZE,
@@ -27,7 +28,6 @@ pub struct UserSpace {
 impl UserSpace {
     pub fn new() -> Self {
         Self {
-            // TODO: new page table with kernel mapped
             page_table: PageTable::from_kernel_page_table(),
             areas: Vec::new(),
         }
@@ -52,6 +52,7 @@ impl UserSpace {
         }
 
         // alloc stack
+        // TODO: Lazy allocation
         let stack_bottom = U_STACK_END - TASK_STACK_SIZE;
         let stack_top = U_STACK_END;
         let mut stack_area = UserArea::new(
@@ -63,11 +64,6 @@ impl UserSpace {
         stack_area.map(&mut self.page_table);
         self.areas.push(stack_area);
         elf.header.pt2.entry_point() as usize
-    }
-
-    pub fn init_stack(&mut self, args: Vec<String>) -> usize {
-        // TODO
-        U_STACK_END
     }
 
     pub fn init_heap(&mut self, page_count: usize) {
@@ -167,6 +163,7 @@ impl UserArea {
     }
 
     pub fn map(&mut self, page_table: &mut PageTable) {
+        debug!("mapping user area: {:x?}, perm: {:?}", self.range(), self.perm);
         for vpn in self.range().iter() {
             self.map_one(vpn, page_table);
         }

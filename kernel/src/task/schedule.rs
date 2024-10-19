@@ -94,6 +94,7 @@ impl Scheduler {
                     continue;
                 }
                 TaskStatus::Exited => {
+                    debug!("Task {:?} exited, runs: {}", task.pid(), task.runs());
                     task.do_exit();
                     self.alive_task_count
                         .fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
@@ -101,7 +102,11 @@ impl Scheduler {
                 }
                 TaskStatus::Ready => {}
                 _ => {
-                    panic!("Task {:?} is in an invalid state: {:?}", task.pid(), task.status());
+                    panic!(
+                        "Task {:?} is in an invalid state: {:?}",
+                        task.pid(),
+                        task.status()
+                    );
                 }
             }
             // TODO: Refactor here
@@ -118,6 +123,7 @@ impl Scheduler {
             }
             set_kernel_trap();
 
+            task.inc_runs();
             let scause = scause::read();
             match scause.cause() {
                 Trap::Interrupt(i) => match i {
@@ -134,9 +140,10 @@ impl Scheduler {
                         // kill for now
                         // TODO Handle page fault
                         warn!(
-                            "User page fault, killed. Pid: {:?}, sepc: {:#x}",
+                            "User page fault, killed. Pid: {:?}, sepc: {:#x}, stval: {:#x}",
                             task.pid(),
                             task.get_context().sepc,
+                            riscv::register::stval::read()
                         );
                         task.exit();
                     }
@@ -161,6 +168,7 @@ impl Scheduler {
                 },
             };
             if task.is_exited() {
+                debug!("Task {:?} exited, runs: {}", task.pid(), task.runs());
                 task.do_exit();
                 self.alive_task_count
                     .fetch_sub(1, core::sync::atomic::Ordering::SeqCst);

@@ -2,7 +2,7 @@ use core::fmt::{self, Display};
 
 use alloc::sync::Arc;
 
-use crate::{mask, mm::{addr::VirtAddr, address_space::U_END, consts::PAGE_SIZE_BITS, paging::pte::PteFlags}, task::{taskdef::TaskControlBlock, user_space::UserAreaPerm}};
+use crate::{mm::{addr::VirtAddr, address_space::U_END}, task::{taskdef::TaskControlBlock, user_space::UserAreaPerm}};
 
 #[derive(Clone)]
 pub struct UnsafeUserString {
