@@ -21,7 +21,7 @@ pub static TASK_PREPARED: AtomicBool = AtomicBool::new(false);
 pub fn run() -> ! {
     let task = TaskControlBlock::new();
     task.clone().init(LOOP, vec![]);
-    schedule::SCHEDULER.add_task(task);
+    schedule::SCHEDULER.new_task(task);
     // let task = TaskControlBlock::new();
     // task.clone().init(PAGEFAULT, vec![]);
     // let _ = schedule::SCHEDULER.add_task(task);

@@ -41,7 +41,7 @@ impl Scheduler {
         }
     }
 
-    pub fn add_task(&self, task: Arc<TaskControlBlock>) -> Result<(), OsError> {
+    pub fn new_task(&self, task: Arc<TaskControlBlock>) -> Result<(), OsError> {
         loop {
             let current_count = self.alive_task_count.load(Ordering::Relaxed);
             if current_count >= MAX_TASKS {
@@ -62,6 +62,10 @@ impl Scheduler {
                 return Ok(());
             }
         }
+    }
+
+    pub fn add_task(&self, task: Arc<TaskControlBlock>) {
+        self.tasks.lock().push_back(task);
     }
 
     pub fn get_task(&self) -> Option<Arc<TaskControlBlock>> {
