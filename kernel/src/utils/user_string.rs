@@ -21,7 +21,7 @@ impl UnsafeUserString {
     }
 
     pub fn checked(&self) -> Option<UserString> {
-        if self.ptr as usize >= U_END {
+        if self.ptr as usize >= U_END || (self.ptr as usize).checked_add(self.len).is_none()  || (self.ptr as usize + self.len) >= U_END {
             return None;
         }
         let mut vpn = VirtAddr(self.ptr as usize).floor_page();
