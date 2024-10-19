@@ -19,12 +19,12 @@ const PAGEFAULT: &[u8] = include_bytes_align_as!(usize, "../../../user/pagefault
 pub static TASK_PREPARED: AtomicBool = AtomicBool::new(false); 
 
 pub fn run() -> ! {
-    // let task = TaskControlBlock::new();
-    // task.clone().init(LOOP, vec![]);
-    // schedule::SCHEDULER.add_task(task);
     let task = TaskControlBlock::new();
-    task.clone().init(PAGEFAULT, vec![]);
-    let _ = schedule::SCHEDULER.add_task(task);
+    task.clone().init(LOOP, vec![]);
+    schedule::SCHEDULER.add_task(task);
+    // let task = TaskControlBlock::new();
+    // task.clone().init(PAGEFAULT, vec![]);
+    // let _ = schedule::SCHEDULER.add_task(task);
     TASK_PREPARED.store(true, core::sync::atomic::Ordering::SeqCst);
     schedule::SCHEDULER.main_loop()
 }

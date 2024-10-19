@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(alloc_error_handler)]
 #![feature(naked_functions)]
+#![feature(postfix_match)]
 
 extern crate alloc;
 use core::{ptr::write_bytes, sync::atomic::AtomicU8};

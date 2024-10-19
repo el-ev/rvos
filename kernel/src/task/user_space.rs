@@ -4,7 +4,7 @@ use crate::{
 };
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use bitflags::bitflags;
-use log::debug;
+use log::{debug, trace};
 
 use crate::{
     config::TASK_STACK_SIZE,
@@ -163,7 +163,7 @@ impl UserArea {
     }
 
     pub fn map(&mut self, page_table: &mut PageTable) {
-        debug!("mapping user area: {:x?}, perm: {:?}", self.range(), self.perm);
+        trace!("mapping user area: {:x?}, perm: {:?}", self.range(), self.perm);
         for vpn in self.range().iter() {
             self.map_one(vpn, page_table);
         }
