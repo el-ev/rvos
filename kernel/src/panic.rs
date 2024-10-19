@@ -1,4 +1,4 @@
-use core::panic::PanicInfo;
+use core::{panic::PanicInfo, sync::atomic::AtomicBool};
 
 use alloc::{format, string::String};
 use arch::get_hart_id;
@@ -6,10 +6,23 @@ use log::error;
 
 use crate::mm::layout::{__text_end, __text_start};
 
+static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
+
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     unsafe {
         riscv::register::sstatus::clear_sie();
+    }
+    if PANIC_HAPPENING
+        .compare_exchange(
+            false,
+            true,
+            core::sync::atomic::Ordering::Acquire,
+            core::sync::atomic::Ordering::Relaxed,
+        )
+        .is_err()
+    {
+        loop {}
     }
     if let Some(location) = info.location() {
         error!(
