@@ -144,31 +144,3 @@ impl From<VirtPageNum> for usize {
         v.0
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VPNRange {
-    pub start: VirtPageNum, // inclusive
-    pub end: VirtPageNum,   // exclusive
-}
-
-impl VPNRange {
-    pub fn new(start: VirtPageNum, end: VirtPageNum) -> Self {
-        Self { start, end }
-    }
-
-    pub fn len(&self) -> usize {
-        self.end.0 - self.start.0
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.start == self.end
-    }
-
-    pub fn contains(&self, vpn: VirtPageNum) -> bool {
-        self.start <= vpn && vpn < self.end
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = VirtPageNum> {
-        (self.start.0..self.end.0).map(VirtPageNum)
-    }
-}

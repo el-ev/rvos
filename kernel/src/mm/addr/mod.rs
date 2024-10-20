@@ -1,7 +1,7 @@
 use log::warn;
 
 pub use phys::{PhysAddr, PhysPageNum};
-pub use virt::{VPNRange, VirtAddr, VirtPageNum};
+pub use virt::{VirtAddr, VirtPageNum};
 
 use super::{
     address_space::{

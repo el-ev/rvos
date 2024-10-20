@@ -1,5 +1,6 @@
 use crate::{
     Mutex, entry,
+    error::OsError,
     mm::{addr::PhysPageNum, address_space::U_HEAP_BEG, consts::PAGE_SIZE},
 };
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
@@ -9,7 +10,7 @@ use log::{debug, trace};
 use crate::{
     config::TASK_STACK_SIZE,
     mm::{
-        addr::{VPNRange, VirtAddr, VirtPageNum},
+        addr::{VirtAddr, VirtPageNum},
         address_space::U_STACK_END,
         frame::{self, FrameTracker},
         paging::{
@@ -22,14 +23,14 @@ use crate::{
 
 pub struct UserSpace {
     pub page_table: PageTable,
-    areas: Vec<UserArea>,
+    areas: BTreeMap<VirtPageNum, UserArea>,
 }
 
 impl UserSpace {
     pub fn new() -> Self {
         Self {
             page_table: PageTable::from_kernel_page_table(),
-            areas: Vec::new(),
+            areas: BTreeMap::new(),
         }
     }
 
@@ -45,66 +46,51 @@ impl UserSpace {
             let start = VirtAddr(ph.virtual_addr() as usize);
             let size = ph.mem_size() as usize;
             let perm = ph.flags().into();
-            let mut area = UserArea::new(UserAreaType::Framed, perm, start, start + size);
-            area.map(&mut self.page_table);
-            area.copy_data(&mut self.page_table, &elf.input[offset..offset + size]);
-            self.areas.push(area);
+            let mut vpn = start.floor_page();
+            for i in (0..size).step_by(PAGE_SIZE) {
+                let mut area = UserArea::new(UserAreaType::Framed, perm, vpn);
+                area.map(&mut self.page_table).expect("failed to map user area");
+                area.copy_data(&mut self.page_table, &elf.input[offset + i..offset + i + PAGE_SIZE]);
+                self.areas.insert(vpn, area);
+                vpn += 1;
+            }
         }
-
         // alloc stack
-        // TODO: Lazy allocation
-        let stack_bottom = U_STACK_END - TASK_STACK_SIZE;
-        let stack_top = U_STACK_END;
-        let mut stack_area = UserArea::new(
-            UserAreaType::Framed,
-            UserAreaPerm::R | UserAreaPerm::W,
-            stack_bottom.into(),
-            stack_top.into(),
-        );
-        stack_area.map(&mut self.page_table);
-        self.areas.push(stack_area);
+        (U_STACK_END - TASK_STACK_SIZE..U_STACK_END).rev().step_by(PAGE_SIZE).map(|va| {
+            let vpn = VirtAddr(va).floor_page();
+            let mut area = UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
+            area.map(&mut self.page_table).expect("failed to map user area");
+            self.areas.insert(vpn, area);
+        }).for_each(drop);
         elf.header.pt2.entry_point() as usize
     }
 
     pub fn init_heap(&mut self, page_count: usize) {
-        let size = page_count * PAGE_SIZE;
-        let heap_start = U_HEAP_BEG;
-        let heap_end = heap_start + size;
-        let mut heap_area = UserArea::new(
-            UserAreaType::Framed,
-            UserAreaPerm::R | UserAreaPerm::W,
-            heap_start.into(),
-            heap_end.into(),
-        );
-        heap_area.map(&mut self.page_table);
-        self.areas.push(heap_area);
+        let heap_start = VirtAddr(U_HEAP_BEG);
+        let mut vpn = heap_start.floor_page();
+        for _ in 0..page_count {
+            let mut area = UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
+            area.map(&mut self.page_table).expect("failed to map user area");
+            self.areas.insert(vpn, area);
+            vpn += 1;
+        }
     }
 
     pub fn check_perm(&self, vpn: VirtPageNum, perm: UserAreaPerm) -> bool {
-        // TODO BTreeMap
-        for area in &self.areas {
-            if area.range().contains(vpn) {
-                return area.perm().contains(perm);
-            }
+        if let Some(area) = self.areas.get(&vpn) {
+            area.perm().contains(perm)
+        } else {
+            false
         }
-        false
     }
 
-    pub fn alloc(&mut self, vpn: VirtPageNum, perm: UserAreaPerm) -> Result<(), ()> {
-        for area in &mut self.areas {
-            if area.range().contains(vpn) {
-                area.map_one(vpn, &mut self.page_table);
-                return Ok(());
-            }
+    pub fn alloc(&mut self, vpn: VirtPageNum, perm: UserAreaPerm) -> Result<(), OsError> {
+        if self.areas.contains_key(&vpn) {
+            return Ok(());
         }
-        let mut area = UserArea::new(
-            UserAreaType::Framed,
-            perm,
-            vpn.into(),
-            (vpn + 1).into(),
-        );
-        area.map_one(vpn, &mut self.page_table);
-        self.areas.push(area);
+        let mut area = UserArea::new(UserAreaType::Framed, perm, vpn);
+        area.map(&mut self.page_table)?;
+        self.areas.insert(vpn, area);
         Ok(())
     }
 }
@@ -158,71 +144,49 @@ pub enum UserAreaType {
 pub struct UserArea {
     ty: UserAreaType,
     perm: UserAreaPerm,
-    frames: BTreeMap<VirtPageNum, FrameTracker>,
-    range: VPNRange,
+    // TODO: Use Arc for FrameTracker?
+    frame: Option<FrameTracker>,
+    vpn: VirtPageNum,
 }
 
 impl UserArea {
-    pub fn new(ty: UserAreaType, perm: UserAreaPerm, start: VirtAddr, end: VirtAddr) -> Self {
+    pub fn new(ty: UserAreaType, perm: UserAreaPerm, vpn: VirtPageNum) -> Self {
         Self {
             ty,
             perm,
-            frames: BTreeMap::new(),
-            range: VPNRange::new(start.floor_page(), end.ceil_page()),
+            frame: None,
+            vpn,
         }
-    }
-
-    pub fn range(&self) -> VPNRange {
-        self.range
     }
 
     pub fn perm(&self) -> UserAreaPerm {
         self.perm
     }
 
-    pub fn map(&mut self, page_table: &mut PageTable) {
-        trace!("mapping user area: {:x?}, perm: {:?}", self.range(), self.perm);
-        for vpn in self.range().iter() {
-            self.map_one(vpn, page_table);
+    pub fn map(&mut self, page_table: &mut PageTable) -> Result<(), OsError> {
+        trace!("mapping user area: {:x?}, perm: {:?}", self.vpn, self.perm);
+        if self.frame.is_none() {
+            let frame = frame::alloc()?;
+            self.frame = Some(frame);
         }
-    }
-
-    // TODO Propagate OsError
-    pub fn map_one(&mut self, vpn: VirtPageNum, page_table: &mut PageTable) {
-        let ppn = match self.ty {
-            UserAreaType::Framed => {
-                let frame = frame::alloc().expect("failed to allocate frame for user area");
-                let ppn = frame.ppn;
-                self.frames.insert(vpn, frame);
-                ppn
-            }
-        };
-        page_table.map(vpn, ppn, self.perm.as_pte_flag());
+        // TODO When type is not framed (file mapping)
+        page_table.map(
+            self.vpn,
+            self.frame.as_ref().unwrap().ppn,
+            self.perm.as_pte_flag(),
+        );
+        Ok(())
     }
 
     pub fn unmap(&mut self, page_table: &mut PageTable) {
-        for vpn in self.range().iter() {
-            self.unmap_one(vpn, page_table);
+        if self.frame.is_some() {
+            page_table.unmap(self.vpn);
+            self.frame = None;
         }
-    }
-
-    pub fn unmap_one(&mut self, vpn: VirtPageNum, page_table: &mut PageTable) {
-        if self.ty == UserAreaType::Framed {
-            self.frames.remove(&vpn).expect("frame not found");
-        }
-        page_table.unmap(vpn);
     }
 
     pub fn copy_data(&self, page_table: &mut PageTable, data: &[u8]) {
-        let mut current = 0;
-        let mut iter = self.range.iter();
-        while current < data.len() {
-            let vpn = iter.next().expect("data too large");
-            let src = &data[current..data.len().min(current + PAGE_SIZE)];
-            let dst = unsafe { page_table.query(vpn).unwrap().pa().as_mut_page_slice() };
-            dst[..src.len()].copy_from_slice(src);
-            current += src.len();
-            iter.next();
-        }
+        let dst = unsafe { page_table.query(self.vpn).unwrap().pa().as_mut_page_slice() };
+        dst[..data.len()].copy_from_slice(data);
     }
 }
