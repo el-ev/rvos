@@ -4,7 +4,7 @@ use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
 use log::{debug, trace};
 
 use crate::{
-    mm::{addr::{PhysPageNum, VirtAddr}, address_space::U_STACK_END, paging::page_table::PageTable}, trap::context::UserContext, Mutex
+    mm::{addr::{PhysPageNum, VirtAddr}, address_space::U_STACK_END, paging::{page_table::PageTable, switch_page_table}}, task::hart::{get_current_task, set_current_task}, trap::context::UserContext, Mutex
 };
 
 use super::{
@@ -146,6 +146,10 @@ impl TaskControlBlock {
 
     pub fn do_exit(&self) {
         // TODO cleanup
+        let current_task = get_current_task();
+        if current_task.is_some() && current_task.unwrap().pid() == self.pid() {
+            set_current_task(None);
+        }
         trace!("Task {:?} exited with code {}", self.pid(), self.exit_code());
     }
 }

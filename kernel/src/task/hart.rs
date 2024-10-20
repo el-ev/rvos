@@ -34,7 +34,7 @@ pub fn get_current_task() -> Option<Arc<TaskControlBlock>> {
     unsafe { &HART_LOCAL[hart_id] }.lock().current_task.clone()
 }
 
-pub fn set_current_task(task: Arc<TaskControlBlock>) {
+pub fn set_current_task(task: Option<Arc<TaskControlBlock>>) {
     let hart_id = get_hart_id();
-    unsafe { &HART_LOCAL[hart_id] }.lock().current_task = Some(task);
+    unsafe { &HART_LOCAL[hart_id] }.lock().current_task = task;
 }

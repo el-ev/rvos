@@ -7,7 +7,7 @@ use core::arch::asm;
 use userlib_macro::user_main;
 
 const STR: &str = "Hello, world!\n\x00123123123123123123";
-const PANIC_MSG: &str = "Panic!1";
+const PANIC_MSG: &str = "Panic!11213123";
 
 #[user_main]
 pub fn main() {
@@ -29,11 +29,11 @@ pub fn main() {
         }
     });
     unsafe {
-        asm!(
-            "li a7, 12",
-            "ecall",
-            in("a0") PANIC_MSG.as_ptr(),
-        );
+        // asm!(
+        //     "li a7, 12",
+        //     "ecall",
+        //     in("a0") PANIC_MSG.as_ptr(),
+        // );
         asm!("sd zero, 0(zero)",)
     }
     loop {

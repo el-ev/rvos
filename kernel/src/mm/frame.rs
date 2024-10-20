@@ -1,7 +1,7 @@
 use core::fmt;
 
 use alloc::vec::Vec;
-use log::{info, warn};
+use log::{info, trace, warn};
 
 use crate::{error::OsError, prev_pow_of_2, Mutex};
 
@@ -21,12 +21,14 @@ pub struct FrameTracker {
 
 impl FrameTracker {
     pub fn new(ppn: PhysPageNum) -> Self {
+        trace!("Allocating Frame {:?}", ppn);
         FrameTracker { ppn }
     }
 }
 
 impl Drop for FrameTracker {
     fn drop(&mut self) {
+        trace!("Dropping Frame {:?}", self.ppn);
         dealloc(self.ppn);
     }
 }

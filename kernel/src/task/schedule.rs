@@ -85,13 +85,12 @@ impl Scheduler {
             {
                 panic!("No task to run");
             }
-            let task: Arc<TaskControlBlock>;
-            if let Some(taskk) = self.get_task() {
-                task = taskk.clone();
-            } else {
-                // debug!("Hart {} has no task to run", tp());
+
+            let task = self.get_task();
+            if task.is_none() {
                 continue;
             }
+            let task = task.unwrap();
             //debug!("Hart {} is running task {:?}", tp(), task.pid());
             match task.status() {
                 TaskStatus::Sleeping => {
@@ -118,7 +117,7 @@ impl Scheduler {
             let current_task = get_current_task();
             if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
                 switch_page_table(task.page_table().ppn());
-                set_current_task(task.clone());
+                set_current_task(Some(task.clone()));
             }
             task.set_status(TaskStatus::Running);
             // Switch to user space
