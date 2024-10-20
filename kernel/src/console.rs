@@ -39,6 +39,10 @@ pub fn _print(args: fmt::Arguments<'_>) {
     Stdout.write_fmt(args).unwrap();
 }
 
+pub fn getchar() -> u8 {
+    CONSOLE.getc()
+}
+
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {{

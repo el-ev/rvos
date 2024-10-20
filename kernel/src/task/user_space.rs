@@ -89,6 +89,24 @@ impl UserSpace {
         }
         false
     }
+
+    pub fn alloc(&mut self, vpn: VirtPageNum, perm: UserAreaPerm) -> Result<(), ()> {
+        for area in &mut self.areas {
+            if area.range().contains(vpn) {
+                area.map_one(vpn, &mut self.page_table);
+                return Ok(());
+            }
+        }
+        let mut area = UserArea::new(
+            UserAreaType::Framed,
+            perm,
+            vpn.into(),
+            (vpn + 1).into(),
+        );
+        area.map_one(vpn, &mut self.page_table);
+        self.areas.push(area);
+        Ok(())
+    }
 }
 
 bitflags! {
@@ -169,6 +187,7 @@ impl UserArea {
         }
     }
 
+    // TODO Propagate OsError
     pub fn map_one(&mut self, vpn: VirtPageNum, page_table: &mut PageTable) {
         let ppn = match self.ty {
             UserAreaType::Framed => {

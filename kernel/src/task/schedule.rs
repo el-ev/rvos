@@ -75,6 +75,7 @@ impl Scheduler {
     pub fn main_loop(&self) -> ! {
         // Currently all harts just busy spin until they have a task to run
         // TODO: Better scheduling
+        // TODO: Software interrupt
         loop {
             core::hint::spin_loop();
             if self

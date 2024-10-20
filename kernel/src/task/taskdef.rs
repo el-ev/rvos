@@ -94,6 +94,22 @@ impl TaskControlBlock {
     pub fn memory(&self) -> &Mutex<UserSpace> {
         &self.memory
     }
+
+    pub fn get_task(self: Arc<TaskControlBlock>, pid: Pid) -> Option<Arc<TaskControlBlock>> {
+        if pid == Pid(0) {
+            return Some(self.clone());
+        }
+        let children = self.children.lock();
+        for child in children.iter() {
+            if child.pid() == pid {
+                if child.is_exited() || child.status() == TaskStatus::Uninit {
+                    return None;
+                }
+                return Some(child.clone());
+            }
+        }
+        None
+    }
 }
 
 impl TaskControlBlock {

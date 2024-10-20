@@ -88,6 +88,7 @@ extern "C" fn parking(hartid: usize) -> ! {
     timer::init();
     info!("Hart {} started.", hartid);
     while !TASK_PREPARED.load(core::sync::atomic::Ordering::SeqCst) {
+        // TODO: Software interrupt
         core::hint::spin_loop();
     }
     task::schedule::SCHEDULER.main_loop()
