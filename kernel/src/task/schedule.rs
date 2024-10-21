@@ -1,8 +1,11 @@
 use alloc::{collections::vec_deque::VecDeque, sync::Arc, vec::Vec};
 use arch::{SIEGuard, tp};
 use log::{debug, info, warn};
+use riscv::interrupt::{
+    Trap,
+    supervisor::{Exception, Interrupt},
+};
 use riscv::register::{scause, sscratch};
-use riscv::interrupt::{Trap, supervisor::{Exception, Interrupt}};
 
 use sync::Lazy;
 

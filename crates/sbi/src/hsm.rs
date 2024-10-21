@@ -1,4 +1,4 @@
-use crate::{sbi_call, Sbiret};
+use crate::{Sbiret, sbi_call};
 
 const EID_BASE: u64 = 0x48534D;
 

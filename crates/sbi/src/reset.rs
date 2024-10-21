@@ -1,4 +1,4 @@
-use crate::{sbi_call, Sbiret};
+use crate::{Sbiret, sbi_call};
 
 const SBI_EXT_RESET: u64 = 0x53525354;
 

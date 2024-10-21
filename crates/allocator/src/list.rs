@@ -25,7 +25,9 @@ impl List {
     }
 
     pub unsafe fn push(&mut self, elm: *mut usize) {
-        unsafe{*elm = self.head as usize;}
+        unsafe {
+            *elm = self.head as usize;
+        }
         self.head = elm;
     }
 

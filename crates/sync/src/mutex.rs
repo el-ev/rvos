@@ -1,5 +1,8 @@
 use core::{
-    cell::UnsafeCell, fmt, ops::{Deref, DerefMut}, sync::atomic::{AtomicI32, Ordering}
+    cell::UnsafeCell,
+    fmt,
+    ops::{Deref, DerefMut},
+    sync::atomic::{AtomicI32, Ordering},
 };
 
 use crate::MutexHelper;

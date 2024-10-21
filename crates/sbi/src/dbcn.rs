@@ -1,4 +1,4 @@
-use crate::{sbi_call, Sbiret};
+use crate::{Sbiret, sbi_call};
 
 const SBI_EXT_DBCN: u64 = 0x4442434E;
 

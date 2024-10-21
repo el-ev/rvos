@@ -3,11 +3,16 @@ use core::panic;
 use alloc::sync::Arc;
 
 use crate::{
-    console::getchar, error::OsError, mm::{
+    console::getchar,
+    error::OsError,
+    mm::{
         addr::VirtAddr,
-        address_space::{is_illegal_user_va_range, U_BEG, U_END},
+        address_space::{U_BEG, U_END, is_illegal_user_va_range},
         consts::PAGE_SIZE,
-    }, print, task::{pid::Pid, taskdef::TaskControlBlock, user_space::UserAreaPerm}, utils::user_string::UnsafeUserString
+    },
+    print,
+    task::{pid::Pid, taskdef::TaskControlBlock, user_space::UserAreaPerm},
+    utils::user_string::UnsafeUserString,
 };
 
 #[repr(usize)]
@@ -142,7 +147,8 @@ pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: u
         match task.memory().lock().alloc(VirtAddr(va).floor_page(), perm) {
             Ok(_) => OsError::Success,
             Err(e) => e,
-        }.into()
+        }
+        .into()
     } else {
         OsError::BadTask.into()
     }
@@ -196,7 +202,13 @@ pub fn sys_panic(task: Arc<TaskControlBlock>, ptr: usize) -> usize {
     }
 }
 
-pub fn sys_ipc_try_send(task: Arc<TaskControlBlock>, pid: usize, value: usize, src_va: usize, perm: usize) -> usize {
+pub fn sys_ipc_try_send(
+    task: Arc<TaskControlBlock>,
+    pid: usize,
+    value: usize,
+    src_va: usize,
+    perm: usize,
+) -> usize {
     0
 }
 

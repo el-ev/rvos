@@ -1,11 +1,11 @@
 use core::arch::global_asm;
 
 use context::KernelContext;
+use riscv::interrupt::{Trap, supervisor::Exception};
 use riscv::register::{
     scause::Scause,
     stvec::{self, TrapMode},
 };
-use riscv::interrupt::{Trap, supervisor::Exception};
 
 pub mod context;
 mod exception;

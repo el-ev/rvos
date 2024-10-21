@@ -1,10 +1,20 @@
-use core::{arch::asm, sync::atomic::{AtomicBool, AtomicUsize, Ordering}};
+use core::{
+    arch::asm,
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+};
 
 use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
 use log::{debug, trace};
 
 use crate::{
-    mm::{addr::{PhysPageNum, VirtAddr}, address_space::U_STACK_END, paging::{page_table::PageTable, switch_page_table}}, task::hart::{get_current_task, set_current_task}, trap::context::UserContext, Mutex
+    Mutex,
+    mm::{
+        addr::{PhysPageNum, VirtAddr},
+        address_space::U_STACK_END,
+        paging::{page_table::PageTable, switch_page_table},
+    },
+    task::hart::{get_current_task, set_current_task},
+    trap::context::UserContext,
 };
 
 use super::{
@@ -65,9 +75,14 @@ impl TaskControlBlock {
     }
 
     pub fn exit(&self) {
-        if self.is_exited.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+        if self
+            .is_exited
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
             // self.set_status(TaskStatus::Zombie);
-            self.exit_code.store(self.get_context().uregs[10], Ordering::Relaxed);
+            self.exit_code
+                .store(self.get_context().uregs[10], Ordering::Relaxed);
         }
     }
 
@@ -150,7 +165,11 @@ impl TaskControlBlock {
             set_current_task(None);
         }
         // TODO: Children's parent should be set
-        trace!("Task {:?} exited with code {}", self.pid(), self.exit_code());
+        trace!(
+            "Task {:?} exited with code {}",
+            self.pid(),
+            self.exit_code()
+        );
     }
 }
 

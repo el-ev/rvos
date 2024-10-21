@@ -47,6 +47,6 @@ unsafe impl<const ORDER: usize> GlobalAlloc for BuddyAllocator<ORDER> {
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         self.heap
             .lock()
-            .dealloc(unsafe{core::ptr::NonNull::new_unchecked(ptr)}, layout)
+            .dealloc(unsafe { core::ptr::NonNull::new_unchecked(ptr) }, layout)
     }
 }

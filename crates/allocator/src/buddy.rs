@@ -33,14 +33,14 @@ impl<const ORDER: usize> Heap<ORDER> {
             let size = lowbit.min(prev_power_of_2(end - start));
 
             total += size;
-            unsafe {self.free_area[size.trailing_zeros() as usize].push(start as *mut usize)};
+            unsafe { self.free_area[size.trailing_zeros() as usize].push(start as *mut usize) };
             start += size;
         }
         self.total += total;
     }
 
     pub unsafe fn add_size(&mut self, start: usize, size: usize) {
-        unsafe{self.add_range(start, start + size)};
+        unsafe { self.add_range(start, start + size) };
     }
 
     pub fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, ()> {

@@ -20,22 +20,14 @@ pub fn main() {
             in("a1") STR.len(),
         );
     }
-    (0..100000).for_each(|_| {
-        unsafe {
-            asm!(
-                "li a7, 3",
-                "ecall",
-            )
-        }
-    });
+    (0..100000).for_each(|_| unsafe { asm!("li a7, 3", "ecall",) });
     unsafe {
         // asm!(
         //     "li a7, 12",
         //     "ecall",
         //     in("a0") PANIC_MSG.as_ptr(),
         // );
-        asm!("li a0, 11",
-            "sd zero, 0(zero)",)
+        asm!("li a0, 11", "sd zero, 0(zero)",)
     }
     loop {
         core::hint::black_box({
@@ -46,11 +38,12 @@ pub fn main() {
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    unsafe {asm!(
-        "li a7, 12",
-        "ecall",
-        in("a0") PANIC_MSG.as_ptr(),
-    );}
-    loop {
+    unsafe {
+        asm!(
+            "li a7, 12",
+            "ecall",
+            in("a0") PANIC_MSG.as_ptr(),
+        );
     }
+    loop {}
 }

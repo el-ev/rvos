@@ -13,9 +13,13 @@ pub mod schedule;
 pub mod taskdef;
 pub mod user_space;
 
-pub static TASK_PREPARED: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+pub static TASK_PREPARED: core::sync::atomic::AtomicBool =
+    core::sync::atomic::AtomicBool::new(false);
 
-const LOOP: &[u8] = include_bytes_align_as!(usize, "../../../target/riscv64gc-unknown-none-elf/debug/dummy");
+const LOOP: &[u8] = include_bytes_align_as!(
+    usize,
+    "../../../target/riscv64gc-unknown-none-elf/debug/dummy"
+);
 const PAGEFAULT: &[u8] = include_bytes_align_as!(usize, "../../../user/pagefault.b");
 
 pub fn run() -> ! {

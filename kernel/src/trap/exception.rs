@@ -1,7 +1,6 @@
 use log::trace;
 use riscv::interrupt::supervisor::Exception;
 
-
 use super::context::KernelContext;
 
 pub fn handle_exception(ctx: &mut KernelContext, e: Exception) {

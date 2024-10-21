@@ -49,20 +49,30 @@ impl UserSpace {
             let mut vpn = start.floor_page();
             for i in (0..size).step_by(PAGE_SIZE) {
                 let mut area = UserArea::new(UserAreaType::Framed, perm, vpn);
-                area.map(&mut self.page_table).expect("failed to map user area");
-                area.copy_data(&mut self.page_table, &elf.input[offset + i..offset + i + PAGE_SIZE]);
+                area.map(&mut self.page_table)
+                    .expect("failed to map user area");
+                area.copy_data(
+                    &mut self.page_table,
+                    &elf.input[offset + i..offset + i + PAGE_SIZE],
+                );
                 self.areas.insert(vpn, area);
                 vpn += 1;
             }
         }
         // alloc stack
         // TODO Lazy alloc
-        (U_STACK_END - TASK_STACK_SIZE..U_STACK_END).rev().step_by(PAGE_SIZE).map(|va| {
-            let vpn = VirtAddr(va).floor_page();
-            let mut area = UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
-            area.map(&mut self.page_table).expect("failed to map user area");
-            self.areas.insert(vpn, area);
-        }).for_each(drop);
+        (U_STACK_END - TASK_STACK_SIZE..U_STACK_END)
+            .rev()
+            .step_by(PAGE_SIZE)
+            .map(|va| {
+                let vpn = VirtAddr(va).floor_page();
+                let mut area =
+                    UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
+                area.map(&mut self.page_table)
+                    .expect("failed to map user area");
+                self.areas.insert(vpn, area);
+            })
+            .for_each(drop);
         elf.header.pt2.entry_point() as usize
     }
 
@@ -70,8 +80,10 @@ impl UserSpace {
         let heap_start = VirtAddr(U_HEAP_BEG);
         let mut vpn = heap_start.floor_page();
         for _ in 0..page_count {
-            let mut area = UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
-            area.map(&mut self.page_table).expect("failed to map user area");
+            let mut area =
+                UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
+            area.map(&mut self.page_table)
+                .expect("failed to map user area");
             self.areas.insert(vpn, area);
             vpn += 1;
         }

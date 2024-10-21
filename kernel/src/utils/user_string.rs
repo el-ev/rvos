@@ -20,7 +20,9 @@ impl UnsafeUserString {
     }
 
     unsafe fn as_str(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(self.ptr, self.len.unwrap())) }
+        unsafe {
+            core::str::from_utf8_unchecked(core::slice::from_raw_parts(self.ptr, self.len.unwrap()))
+        }
     }
 
     pub fn checked(&self) -> Option<UserString> {

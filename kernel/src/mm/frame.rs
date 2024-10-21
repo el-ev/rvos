@@ -3,7 +3,7 @@ use core::fmt;
 use alloc::vec::Vec;
 use log::{info, trace, warn};
 
-use crate::{error::OsError, prev_pow_of_2, Mutex};
+use crate::{Mutex, error::OsError, prev_pow_of_2};
 
 use super::{
     addr::{PhysAddr, PhysPageNum, pa2kva},
@@ -168,11 +168,13 @@ pub fn alloc_frames(size: usize, align: usize) -> Result<Vec<FrameTracker>, OsEr
             size, align
         );
     }
-    frame.map(|frame| {
-        (0..size)
-            .map(|i| FrameTracker::new(PhysPageNum(frame.0 + i)))
-            .collect()
-    }).ok_or(OsError::NoMem)
+    frame
+        .map(|frame| {
+            (0..size)
+                .map(|i| FrameTracker::new(PhysPageNum(frame.0 + i)))
+                .collect()
+        })
+        .ok_or(OsError::NoMem)
 }
 
 pub fn alloc() -> Result<FrameTracker, OsError> {
