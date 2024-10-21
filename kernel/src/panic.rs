@@ -10,6 +10,7 @@ static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    // TODO: don't let panic message mess up the screen
     unsafe {
         riscv::register::sstatus::clear_sie();
     }

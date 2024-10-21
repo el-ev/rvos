@@ -29,7 +29,6 @@ pub fn get_hart_id() -> usize {
     tp()
 }
 
-// TODO: This should be utilized in syscall
 pub fn get_current_task() -> Option<Arc<TaskControlBlock>> {
     let hart_id = get_hart_id();
     unsafe { &HART_LOCAL[hart_id] }.lock().current_task.clone()

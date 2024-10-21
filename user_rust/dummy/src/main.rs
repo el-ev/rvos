@@ -20,7 +20,7 @@ pub fn main() {
             in("a1") STR.len(),
         );
     }
-    (0..100000).for_each(|_| unsafe { asm!("li a7, 3", "ecall",) });
+    (0..1000).for_each(|_| unsafe { asm!("li a7, 3", "ecall",) });
     unsafe {
         // asm!(
         //     "li a7, 12",

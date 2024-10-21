@@ -1,6 +1,6 @@
 use alloc::{collections::vec_deque::VecDeque, sync::Arc, vec::Vec};
 use arch::{SIEGuard, tp};
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use riscv::interrupt::{
     Trap,
     supervisor::{Exception, Interrupt},
@@ -15,12 +15,7 @@ use core::{
 };
 
 use crate::{
-    Mutex,
-    config::MAX_TASKS,
-    error::OsError,
-    mm::paging::switch_page_table,
-    print, println, syscall, timer,
-    trap::{self, context::UserContext, set_kernel_trap, set_user_trap},
+    config::MAX_TASKS, error::OsError, mm::{addr::VirtAddr, paging::switch_page_table}, print, println, syscall, task::user_space::UserPageFaultType, timer, trap::{self, context::UserContext, set_kernel_trap, set_user_trap}, Mutex
 };
 
 use super::{
@@ -145,15 +140,30 @@ impl Scheduler {
                     Exception::LoadPageFault
                     | Exception::StorePageFault
                     | Exception::InstructionPageFault => {
-                        // kill for now
-                        // TODO Handle page fault
-                        warn!(
-                            "User page fault, killed. Pid: {:?}, sepc: {:#x}, stval: {:#x}",
+                        let stval = riscv::register::stval::read();
+                        let ty = match e {
+                            Exception::LoadPageFault => UserPageFaultType::Read,
+                            Exception::StorePageFault => UserPageFaultType::Write,
+                            Exception::InstructionPageFault => UserPageFaultType::Execute,
+                            _ => unreachable!(),
+                        };
+                        trace!(
+                            "User page fault, pid: {:?}, stval: {:#x}",
                             task.pid(),
-                            task.get_context().sepc,
-                            riscv::register::stval::read()
+                            stval,
                         );
-                        task.exit();
+                        match task.memory().lock().handle_page_fault(stval, ty) {
+                            Ok(()) => {}
+                            Err(e) => {
+                                warn!(
+                                    "User page fault, killed. Pid: {:?}, sepc: {:#x}, stval: {:#x}",
+                                    task.pid(),
+                                    task.get_context().sepc,
+                                    stval,
+                                );
+                                task.exit();
+                            }
+                        }
                     }
                     Exception::IllegalInstruction
                     | Exception::InstructionFault

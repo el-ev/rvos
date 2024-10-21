@@ -66,10 +66,9 @@ impl UserSpace {
             .step_by(PAGE_SIZE)
             .map(|va| {
                 let vpn = VirtAddr(va).floor_page();
+                trace!("allocating stack: {:x?}", vpn);
                 let mut area =
                     UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
-                area.map(&mut self.page_table)
-                    .expect("failed to map user area");
                 self.areas.insert(vpn, area);
             })
             .for_each(drop);
@@ -82,8 +81,8 @@ impl UserSpace {
         for _ in 0..page_count {
             let mut area =
                 UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
-            area.map(&mut self.page_table)
-                .expect("failed to map user area");
+            // area.map(&mut self.page_table)
+            //     .expect("failed to map user area");
             self.areas.insert(vpn, area);
             vpn += 1;
         }
@@ -102,10 +101,31 @@ impl UserSpace {
             return Ok(());
         }
         let mut area = UserArea::new(UserAreaType::Framed, perm, vpn);
-        area.map(&mut self.page_table)?;
+        // area.map(&mut self.page_table)?;
         self.areas.insert(vpn, area);
         Ok(())
     }
+
+    pub fn handle_page_fault(&mut self, stval: usize, ty: UserPageFaultType) -> Result<(), ()> {
+        let vpn = VirtAddr(stval).floor_page();
+        let perm = match ty {
+            UserPageFaultType::Read => UserAreaPerm::R,
+            UserPageFaultType::Write => UserAreaPerm::R | UserAreaPerm::W,
+            UserPageFaultType::Execute => UserAreaPerm::R | UserAreaPerm::X,
+        };
+        if !self.check_perm(vpn, perm) {
+            return Err(());
+        }
+        self.areas.get_mut(&vpn).unwrap().map(&mut self.page_table).map_err(|_| ())?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum UserPageFaultType {
+    Read,
+    Write,
+    Execute,
 }
 
 bitflags! {
