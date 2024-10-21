@@ -1,5 +1,6 @@
 use log::trace;
-use riscv::register::scause::Exception;
+use riscv::interrupt::supervisor::Exception;
+
 
 use super::context::KernelContext;
 

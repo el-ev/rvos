@@ -1,4 +1,4 @@
-use riscv::register::scause::Interrupt;
+use riscv::interrupt::supervisor::Interrupt;
 
 use crate::timer;
 

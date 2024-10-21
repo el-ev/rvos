@@ -56,6 +56,7 @@ impl UserSpace {
             }
         }
         // alloc stack
+        // TODO Lazy alloc
         (U_STACK_END - TASK_STACK_SIZE..U_STACK_END).rev().step_by(PAGE_SIZE).map(|va| {
             let vpn = VirtAddr(va).floor_page();
             let mut area = UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);

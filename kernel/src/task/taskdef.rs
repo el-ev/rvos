@@ -145,11 +145,11 @@ impl TaskControlBlock {
     }
 
     pub fn do_exit(&self) {
-        // TODO cleanup
         let current_task = get_current_task();
         if current_task.is_some() && current_task.unwrap().pid() == self.pid() {
             set_current_task(None);
         }
+        // TODO: Children's parent should be set
         trace!("Task {:?} exited with code {}", self.pid(), self.exit_code());
     }
 }

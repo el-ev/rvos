@@ -1,10 +1,9 @@
 use alloc::{collections::vec_deque::VecDeque, sync::Arc, vec::Vec};
 use arch::{SIEGuard, tp};
 use log::{debug, info, warn};
-use riscv::register::{
-    scause::{self, Exception, Interrupt, Trap},
-    sscratch,
-};
+use riscv::register::{scause, sscratch};
+use riscv::interrupt::{Trap, supervisor::{Exception, Interrupt}};
+
 use sync::Lazy;
 
 use core::{
@@ -78,6 +77,7 @@ impl Scheduler {
         // TODO: Software interrupt
         loop {
             core::hint::spin_loop();
+            let sie_guard = SIEGuard::new();
             if self
                 .alive_task_count
                 .load(core::sync::atomic::Ordering::SeqCst)
@@ -113,23 +113,24 @@ impl Scheduler {
                     );
                 }
             }
-            // TODO: Refactor here
             let current_task = get_current_task();
             if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
                 switch_page_table(task.page_table().ppn());
                 set_current_task(Some(task.clone()));
             }
             task.set_status(TaskStatus::Running);
-            // Switch to user space
+            drop(sie_guard);
+
             set_user_trap();
             unsafe {
                 _kernel_to_user(task.get_context_ptr());
             }
             set_kernel_trap();
 
+            let sie_guard = SIEGuard::new();
             task.inc_runs();
-            let scause = scause::read();
-            match scause.cause() {
+            let scause = scause::read().cause().try_into().unwrap();
+            match scause {
                 Trap::Interrupt(i) => match i {
                     Interrupt::SupervisorTimer => timer::tick(),
                     _ => {
@@ -177,6 +178,7 @@ impl Scheduler {
                 self.alive_task_count
                     .fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
             } else {
+                set_current_task(None);
                 task.set_status(TaskStatus::Ready);
                 self.add_task(task);
             }

@@ -138,16 +138,11 @@ pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: u
     }
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
-        // let page = task.page_table().alloc(va, perm);
-        // if page.is_ok() {
-        //     OsError::Success.into()
-        // } else {
-        //     OsError::NoMemory.into()
-        // }
         let perm: UserAreaPerm = UserAreaPerm::from_bits(perm).unwrap();
-        // TODO!
-        let _ = task.memory().lock().alloc(VirtAddr(va).floor_page(), perm);
-        OsError::Success.into()
+        match task.memory().lock().alloc(VirtAddr(va).floor_page(), perm) {
+            Ok(_) => OsError::Success,
+            Err(e) => e,
+        }.into()
     } else {
         OsError::BadTask.into()
     }
