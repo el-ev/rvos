@@ -28,6 +28,10 @@ impl<T, H: MutexHelper> Mutex<T, H> {
     pub fn into_inner(self) -> T {
         self.data.into_inner()
     }
+
+    pub unsafe fn force_unlock(&self) {
+        self.state.store(0, Ordering::Release);
+    }
 }
 
 impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
@@ -69,7 +73,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         let hartid = arch::get_hart_id() as i32;
         if self
             .state
-            .compare_exchange(hartid << 1 | 1, 0, Ordering::Acquire, Ordering::Relaxed)
+            .compare_exchange(0, hartid << 1 | 1, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
             Some(MutexGuard {
