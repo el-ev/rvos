@@ -40,7 +40,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         let hartid = arch::get_hart_id() as i32;
         while self
             .state
-            .compare_exchange(0, hartid << 1 | 1, Ordering::AcqRel, Ordering::Relaxed)
+            .compare_exchange(0, hartid << 1 | 1, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {
             let old_state = self.state.load(Ordering::Relaxed);
