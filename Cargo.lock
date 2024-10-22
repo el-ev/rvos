@@ -42,6 +42,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
+name = "fdt"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "784a4df722dc6267a04af36895398f59d21d07dce47232adf31ec0ff2fa45e67"
+
+[[package]]
 name = "fs"
 version = "0.1.0"
 
@@ -52,6 +58,7 @@ dependencies = [
  "allocator",
  "arch",
  "bitflags",
+ "fdt",
  "log",
  "riscv",
  "rustc-demangle",

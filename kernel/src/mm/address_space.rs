@@ -13,10 +13,10 @@ pub const K_FILE_MAPPING_END: usize = 0xffff_ffe0_0000_0000;
 pub const K_PHYSICAL_MEMORY_BEG: usize = 0xffff_fff0_0000_0000;
 pub const K_PHYSICAL_MEMORY_END: usize = 0xffff_ffff_8000_0000;
 
-pub const K_HARDWARE_BEG: usize = 0xffff_ffff_c000_0000;
-pub const K_HARDWARE_END: usize = 0xffff_ffff_f000_0000;
+pub const K_HARDWARE_BEG: usize = 0xffff_ffff_8000_0000;
+pub const K_HARDWARE_END: usize = 0xffff_ffff_c000_0000;
 
-pub const K_DTB: usize = 0xffff_ffff_f000_0000;
+pub const K_DTB: usize = 0xffff_ffff_d000_0000;
 
 pub const K_END: usize = 0xffff_ffff_ffff_ffff;
 
