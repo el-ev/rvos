@@ -39,6 +39,23 @@ pub fn _print(args: fmt::Arguments<'_>) {
     Stdout.write_fmt(args).unwrap();
 }
 
+pub unsafe fn poison_lock() {
+    let mut i = 0;
+    loop {
+        let _lock = PRINT_LOCK.try_lock();
+        if _lock.is_some() {
+            core::mem::forget(_lock);
+            break;
+        }
+        i += 1;
+        if i >= 0x100_000 {
+            unsafe {
+                PRINT_LOCK.force_unlock();
+            }
+        }
+    }
+}
+
 pub fn getchar() -> u8 {
     CONSOLE.getc()
 }

@@ -25,6 +25,9 @@ fn panic(info: &PanicInfo) -> ! {
     {
         loop {}
     }
+    unsafe {
+        crate::console::poison_lock();
+    }
     if let Some(location) = info.location() {
         error!(
             "\x1b[1;31mPanicked: \"{}\" from hart {} at {}:{}{}\x1b[1;0m",
