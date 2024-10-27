@@ -39,6 +39,7 @@ impl Debug for UserContext {
 pub struct KernelContext {
     pub regs: [usize; 16], // ra, t0-2, a0-7, t3-6
     pub sepc: usize,
+    pub stval: usize,
 }
 
 impl Debug for KernelContext {
@@ -62,6 +63,7 @@ impl Debug for KernelContext {
         write!(f, "t6: {:#x}, ", self.regs[15])?;
         writeln!(f, "])")?;
         writeln!(f, "sepc: {:#x}", self.sepc)?;
+        writeln!(f, "stval: {:#x}", self.stval)?;
         Ok(())
     }
 }

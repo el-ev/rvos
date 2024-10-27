@@ -18,7 +18,7 @@
     .type _kernel_to_kernel_trap, @function
 .align 3
 _kernel_to_kernel_trap:
-    addi sp, sp, -8*17
+    addi sp, sp, -8*18
     SAVEK ra, 0
     SAVEK t0, 1
     SAVEK t1, 2
@@ -40,6 +40,7 @@ _kernel_to_kernel_trap:
     mv a0, sp
     csrr a1, scause
     csrr a2, stval
+    SAVEK a2, 17
     call kernel_trap_handler
     LOADK t0, 16
     csrw sepc, t0
@@ -59,7 +60,7 @@ _kernel_to_kernel_trap:
     LOADK t1, 2
     LOADK t0, 1
     LOADK ra, 0
-    addi sp, sp, 8*17
+    addi sp, sp, 8*18
     sret
     .size _kernel_to_kernel_trap, . - _kernel_to_kernel_trap
 
