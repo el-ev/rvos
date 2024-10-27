@@ -22,6 +22,14 @@ pub fn sbi_console_getchar() -> i64 {
     sbi_call_legacy(EID_CONSOLE_GETCHAR, 0, 0, 0)
 }
 
+pub fn sbi_clear_ipi() -> i64 {
+    sbi_call_legacy(EID_CLEAR_IPI, 0, 0, 0)
+}
+
+pub fn sbi_send_ipi(hart_mask: u64) -> i64 {
+    sbi_call_legacy(EID_SEND_IPI, &hart_mask as *const _ as u64, 0, 0)
+}
+
 pub fn sbi_shutdown() -> ! {
     sbi_call_legacy(EID_SHUTDOWN, 0, 0, 0);
     unreachable!()
