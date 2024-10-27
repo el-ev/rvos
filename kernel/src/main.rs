@@ -51,7 +51,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
     let _device_tree = device_tree::parse_fdt(dtb);
     mm::init();
     mm::map_kernel_regions(dtb);
-    trap::set_kernel_trap();
+    trap::init();
     console::CONSOLE.init();
     console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
     info!("Switched to custom uart driver.");
@@ -86,7 +86,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
 #[unsafe(no_mangle)]
 pub extern "C" fn other_hart_main(hartid: usize) -> ! {
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-    trap::set_kernel_trap();
+    trap::init();
     info!("Hart {} started.", hartid);
     riscv::asm::wfi();
     task::schedule::SCHEDULER.main_loop()

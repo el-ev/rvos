@@ -24,6 +24,15 @@ pub extern "C" fn kernel_trap_handler(context: &mut KernelContext, scause: Scaus
     }
 }
 
+pub fn init() {
+    set_kernel_trap();
+    unsafe {
+        riscv::register::sstatus::set_sie();
+        riscv::register::sie::set_sext();
+        riscv::register::sie::set_ssoft();
+    }
+}
+
 #[inline(always)]
 pub fn set_kernel_trap() {
     unsafe extern "C" {

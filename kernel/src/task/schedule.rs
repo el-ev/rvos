@@ -69,6 +69,21 @@ impl Scheduler {
         self.tasks.lock().pop_front()
     }
 
+
+    pub fn new_main_loop(&self) -> ! {
+        loop {
+            core::hint::spin_loop();
+            let sie_guard = SIEGuard::new();
+            if self
+                .alive_task_count
+                .load(core::sync::atomic::Ordering::SeqCst)
+                == 0
+            {
+                panic!("No task to run");
+            }
+        }
+    }
+
     pub fn main_loop(&self) -> ! {
         // Currently all harts just busy spin until they have a task to run
         // TODO: Better scheduling
@@ -89,7 +104,7 @@ impl Scheduler {
                 continue;
             }
             let task = task.unwrap();
-            //debug!("Hart {} is running task {:?}", tp(), task.pid());
+            // debug!("Hart {} is running task {:?}", tp(), task.pid());
             match task.status() {
                 TaskStatus::Sleeping => {
                     self.add_task(task);
@@ -131,9 +146,12 @@ impl Scheduler {
             match scause {
                 Trap::Interrupt(i) => match i {
                     Interrupt::SupervisorTimer => timer::tick(),
-                    _ => {
-                        panic!("Unhandled interrupt: {:?}", i);
-                    }
+                    Interrupt::SupervisorSoft => {
+                        unsafe {
+                            riscv::register::sip::clear_ssoft();
+                        }
+                    },
+                    Interrupt::SupervisorExternal => todo!(),
                 },
                 Trap::Exception(e) => match e {
                     Exception::UserEnvCall => syscall::do_syscall(task.clone()),

@@ -17,7 +17,6 @@ static mut TICKS: usize = 0;
 pub fn init() {
     unsafe {
         sie::set_stimer();
-        sstatus::set_sie();
     }
     set_next_timeout();
     info!("timer initialized for hart {}", tp());

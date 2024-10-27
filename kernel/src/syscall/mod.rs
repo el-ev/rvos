@@ -7,7 +7,7 @@ use crate::{
     error::OsError,
     mm::{
         addr::VirtAddr,
-        address_space::{U_BEG, U_END, is_illegal_user_va_range},
+        address_space::is_illegal_user_va_range,
         consts::PAGE_SIZE,
     },
     print,
