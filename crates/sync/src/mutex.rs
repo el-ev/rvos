@@ -29,6 +29,8 @@ impl<T, H: MutexHelper> Mutex<T, H> {
         self.data.into_inner()
     }
 
+    /// # Safety
+    /// Unsafe
     pub unsafe fn force_unlock(&self) {
         self.state.store(0, Ordering::Release);
     }
