@@ -6,7 +6,7 @@ use core::{
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::drivers::serial::Uart;
+use crate::{config::UART_BASE, drivers::serial::Uart};
 use crate::{
     Mutex,
     drivers::serial::ConsoleDevice,
@@ -14,9 +14,9 @@ use crate::{
 };
 
 static PRINT_LOCK: Mutex<()> = Mutex::new(());
-// TODO Device Tree
+
 pub static CONSOLE: Lazy<Box<dyn ConsoleDevice + Send + Sync>> = Lazy::new(|| {
-    let uart = Uart::new(0x1000_0000 + K_HARDWARE_BEG, 0x0038_4000, 115200, 1, 0);
+    let uart = Uart::new(unsafe { UART_BASE } + K_HARDWARE_BEG, 0x0038_4000, 115200, 1, 0);
     Box::new(uart)
 });
 pub static CUSTOM_PRINT: AtomicBool = AtomicBool::new(false);
@@ -28,6 +28,7 @@ impl fmt::Write for Stdout {
         if CUSTOM_PRINT.load(Ordering::Relaxed) {
             CONSOLE.puts(s);
         } else {
+            // TODO: Here is a bug when printing user space string
             sbi_debug_console_write((s.as_ptr() as usize - KERNEL_OFFSET) as u64, s.len() as u64);
         }
         Ok(())

@@ -3,18 +3,18 @@
 use core::sync::atomic::AtomicBool;
 
 use alloc::{task, vec};
+use arch::tp;
+use log::info;
+use sbi::legacy::sbi_send_ipi;
 use taskdef::TaskControlBlock;
 
-use crate::{get_hart_count, include_bytes_align_as};
+use crate::{get_hart_count, include_bytes_align_as, mask, mm::address_space::K_HARDWARE_BEG};
 
 pub mod hart;
 pub mod pid;
 pub mod schedule;
 pub mod taskdef;
 pub mod user_space;
-
-pub static TASK_PREPARED: core::sync::atomic::AtomicBool =
-    core::sync::atomic::AtomicBool::new(false);
 
 const LOOP: &[u8] = include_bytes_align_as!(
     usize,
@@ -35,6 +35,7 @@ pub fn run() -> ! {
     // let task = TaskControlBlock::new();
     // task.clone().init(PAGEFAULT, vec![]);
     // let _ = schedule::SCHEDULER.add_task(task);
-    TASK_PREPARED.store(true, core::sync::atomic::Ordering::SeqCst);
+
+    sbi_send_ipi(mask!(get_hart_count()) & !(1 << tp()));
     schedule::SCHEDULER.main_loop()
 }

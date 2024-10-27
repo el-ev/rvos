@@ -15,14 +15,14 @@ mod phys;
 mod virt;
 
 pub fn pa2kva(pa: PhysAddr) -> VirtAddr {
-    if !(PHYSICAL_MEMORY_START..PHYSICAL_MEMORY_START + MEMORY_SIZE).contains(&pa.0) {
+    if !(PHYSICAL_MEMORY_START..PHYSICAL_MEMORY_START + unsafe { MEMORY_SIZE }).contains(&pa.0) {
         warn!("Address not in physical memory range");
     }
     VirtAddr(pa.0 + KERNEL_OFFSET)
 }
 
 pub fn kva2pa(va: VirtAddr) -> PhysAddr {
-    if !(K_PHYSICAL_MEMORY_BEG..K_PHYSICAL_MEMORY_BEG + MEMORY_SIZE).contains(&va.0) {
+    if !(K_PHYSICAL_MEMORY_BEG..K_PHYSICAL_MEMORY_BEG + unsafe { MEMORY_SIZE }).contains(&va.0) {
         warn!("Address not in kernel virtual memory range");
     }
     PhysAddr(va.0 - KERNEL_OFFSET)

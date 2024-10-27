@@ -108,6 +108,7 @@ impl PageTable {
         unreachable!()
     }
 
+    // TODO: Support 2MiB and 1GiB pages
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PteFlags) {
         let pte = self.find_create(vpn);
         debug_assert!(!pte.valid());

@@ -42,7 +42,7 @@ pub unsafe extern "C" fn _second_boot() -> ! {
             call {set_stack}
             add sp, sp, s0
             call {set_boot_page_table}
-            la  t1, parking
+            la  t1, other_hart_main
             add t1, t1, s0
             jr  t1
         ",
