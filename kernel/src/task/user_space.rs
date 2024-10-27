@@ -60,18 +60,16 @@ impl UserSpace {
             }
         }
         // alloc stack
-        // TODO Lazy alloc
+        trace!("allocating stack");
         (U_STACK_END - TASK_STACK_SIZE..U_STACK_END)
             .rev()
             .step_by(PAGE_SIZE)
-            .map(|va| {
+            .for_each(|va| {
                 let vpn = VirtAddr(va).floor_page();
-                trace!("allocating stack: {:x?}", vpn);
                 let mut area =
                     UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
                 self.areas.insert(vpn, area);
-            })
-            .for_each(drop);
+            });
         elf.header.pt2.entry_point() as usize
     }
 
