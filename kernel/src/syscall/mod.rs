@@ -5,11 +5,7 @@ use alloc::sync::Arc;
 use crate::{
     console::getchar,
     error::OsError,
-    mm::{
-        addr::VirtAddr,
-        address_space::is_illegal_user_va_range,
-        consts::PAGE_SIZE,
-    },
+    mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE},
     print,
     task::{pid::Pid, taskdef::TaskControlBlock, user_space::UserAreaPerm},
     utils::user_string::UnsafeUserString,

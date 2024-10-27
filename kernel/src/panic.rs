@@ -10,7 +10,6 @@ static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    // TODO: don't let panic message mess up the screen
     unsafe {
         riscv::register::sstatus::clear_sie();
     }
@@ -116,7 +115,7 @@ fn read_symbol() -> alloc::collections::btree_map::BTreeMap<(usize, usize), &'st
     .unwrap();
     for sect in elf.section_iter() {
         if sect.get_type() == Ok(ShType::SymTab) {
-            if let Some(sections::SectionData::SymbolTable64(data)) = sect.get_data(&elf).ok() {
+            if let Ok(sections::SectionData::SymbolTable64(data)) = sect.get_data(&elf) {
                 for sym in data {
                     let name = elf.get_string(sym.name()).unwrap();
                     if name.starts_with("$") || name.starts_with(".L") {

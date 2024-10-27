@@ -1,4 +1,3 @@
-
 /// Align struct
 #[repr(C)]
 pub struct AlignedAs<Align, Bytes: ?Sized> {

@@ -39,7 +39,7 @@ pub fn map_kernel_regions(dtb: usize) {
         unsafe { PageTable::from_ppn(kva2pa(VirtAddr(addr_of!(BOOT_PAGE_TABLE) as usize)).into()) };
 
     // K_PHYSICAL_MEMORY_BEG - K_PHYSICAL_MEMORY_END (62 GiB)
-    // 0xffff_fff0_4000_0000 - 0xffff_ffff_8000_0000    
+    // 0xffff_fff0_4000_0000 - 0xffff_ffff_8000_0000
     unsafe {
         for entry in &mut BOOT_PAGE_TABLE[449..511] {
             *entry = PageTableEntry::new(

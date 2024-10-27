@@ -6,17 +6,23 @@ use core::{
 use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
-use crate::{config::UART_BASE, drivers::serial::Uart};
 use crate::{
     Mutex,
     drivers::serial::ConsoleDevice,
     mm::address_space::{K_HARDWARE_BEG, KERNEL_OFFSET},
 };
+use crate::{config::UART_BASE, drivers::serial::Uart};
 
 static PRINT_LOCK: Mutex<()> = Mutex::new(());
 
 pub static CONSOLE: Lazy<Box<dyn ConsoleDevice + Send + Sync>> = Lazy::new(|| {
-    let uart = Uart::new(unsafe { UART_BASE } + K_HARDWARE_BEG, 0x0038_4000, 115200, 1, 0);
+    let uart = Uart::new(
+        unsafe { UART_BASE } + K_HARDWARE_BEG,
+        0x0038_4000,
+        115200,
+        1,
+        0,
+    );
     Box::new(uart)
 });
 pub static CUSTOM_PRINT: AtomicBool = AtomicBool::new(false);

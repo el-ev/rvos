@@ -3,16 +3,12 @@ use core::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
-use alloc::{boxed::Box, rc::Weak, string::String, sync::Arc, vec::Vec};
-use log::{debug, trace};
+use alloc::{boxed::Box, rc::Weak, sync::Arc, vec::Vec};
+use log::trace;
 
 use crate::{
     Mutex,
-    mm::{
-        addr::{PhysPageNum, VirtAddr},
-        address_space::U_STACK_END,
-        paging::{page_table::PageTable, switch_page_table},
-    },
+    mm::{addr::VirtAddr, address_space::U_STACK_END, paging::page_table::PageTable},
     task::hart::{get_current_task, set_current_task},
     trap::context::UserContext,
 };
@@ -27,10 +23,10 @@ unsafe impl Sync for TaskControlBlock {}
 
 pub struct TaskControlBlock {
     pid: PidHandle,
-    parent: Option<Weak<TaskControlBlock>>,
+    _parent: Option<Weak<TaskControlBlock>>,
     exception_entry: Mutex<VirtAddr>,
     context: Mutex<Box<UserContext>>,
-    ipc_info: Mutex<IpcInfo>,
+    _ipc_info: Mutex<IpcInfo>,
     children: Mutex<Vec<Arc<TaskControlBlock>>>,
     memory: Mutex<UserSpace>,
     status: Mutex<TaskStatus>,
@@ -131,10 +127,10 @@ impl TaskControlBlock {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
             pid: alloc_pid(),
-            parent: None,
+            _parent: None,
             exception_entry: Mutex::new(VirtAddr(0)),
             context: Mutex::new(Box::new(UserContext::default())),
-            ipc_info: Mutex::new(IpcInfo::new()),
+            _ipc_info: Mutex::new(IpcInfo::new()),
             children: Mutex::new(Vec::new()),
             memory: Mutex::new(UserSpace::new()),
             status: Mutex::new(TaskStatus::Uninit),
@@ -144,7 +140,7 @@ impl TaskControlBlock {
         })
     }
 
-    pub fn init(self: Arc<Self>, elf: &[u8], args: Vec<String>) {
+    pub fn init(self: Arc<Self>, elf: &[u8]) {
         let mut memory = self.memory.lock();
         let entry = memory.map_elf(elf);
         memory.init_heap(1);
@@ -172,6 +168,7 @@ impl TaskControlBlock {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TaskStatus {
     Uninit,
@@ -181,6 +178,7 @@ pub enum TaskStatus {
     Exited,
 }
 
+#[allow(dead_code)]
 #[repr(usize)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum IpcStatus {

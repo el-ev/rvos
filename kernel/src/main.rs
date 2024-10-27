@@ -11,6 +11,7 @@ use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
 use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
+use sync::Lazy;
 
 pub type Mutex<T> = sync::SpinNoIrqMutex<T>;
 
@@ -89,7 +90,7 @@ pub extern "C" fn other_hart_main(hartid: usize) -> ! {
     trap::init();
     info!("Hart {} started.", hartid);
     riscv::asm::wfi();
-    task::schedule::SCHEDULER.main_loop()
+    task::schedule::SCHEDULER.hart_loop()
 }
 
 fn clear_bss() {
@@ -108,21 +109,24 @@ fn clear_bss() {
 
 #[inline]
 pub fn get_hart_count() -> usize {
-    let mut hart_cnt = 0;
-    let mut hart_id = 0;
-    loop {
-        let status = sbi_hart_get_status(hart_id);
-        if status.is_success() {
-            hart_cnt += 1;
-            hart_id += 1;
-        } else {
-            break;
+    static HART_COUNT: Lazy<usize> = Lazy::new(|| {
+        let mut hart_cnt = 0;
+        let mut hart_id = 0;
+        loop {
+            let status = sbi_hart_get_status(hart_id);
+            if status.is_success() {
+                hart_cnt += 1;
+                hart_id += 1;
+            } else {
+                break;
+            }
         }
-    }
-    hart_cnt
+        hart_cnt.min(config::CPU_NUM)
+    });
+    *HART_COUNT
 }
 
-#[allow(unused)]
+#[cfg(feature = "smp")]
 pub fn start_hart(hartid: usize) {
     match sbi::hsm::sbi_hart_start(
         hartid as u64,
