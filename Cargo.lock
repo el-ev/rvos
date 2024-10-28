@@ -59,6 +59,7 @@ dependencies = [
  "arch",
  "bitflags",
  "fdt",
+ "fs",
  "log",
  "riscv",
  "rustc-demangle",

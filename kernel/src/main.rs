@@ -21,6 +21,7 @@ mod device_tree;
 mod drivers;
 mod entry;
 mod error;
+mod fs;
 mod logging;
 mod mm;
 mod panic;
@@ -48,7 +49,6 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
     print!("{}", BANNER);
     info!("RVOS Started on hart {}", hartid);
     STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-
     let _device_tree = device_tree::parse_fdt(dtb);
     mm::init();
     mm::map_kernel_regions(dtb);
@@ -81,6 +81,9 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
     unsafe {
         ebreak();
     }
+    unsafe {
+        fs::set_panic_display(panic::panic_str);
+    };
     task::run()
 }
 

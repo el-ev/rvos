@@ -196,6 +196,10 @@ impl Scheduler {
     }
 }
 
+pub fn get_task(pid: Pid) -> Option<Arc<TaskControlBlock>> {
+    SCHEDULER.tasks.lock().get(&pid).cloned()
+}
+
 unsafe extern "C" {
     fn _kernel_to_user(ctx: *mut UserContext);
 }

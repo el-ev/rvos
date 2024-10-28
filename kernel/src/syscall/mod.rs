@@ -1,6 +1,9 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use core::panic;
 
-use alloc::{sync::Arc, task};
+use alloc::sync::Arc;
 
 use crate::{
     console::getchar,
@@ -29,9 +32,17 @@ enum Syscall {
     IpcTrySend = 13,
     IpcRecv = 14,
     Getchar = 15,
-    WriteDev = 16,
-    ReadDev = 17,
-    FileOp = 18,
+    // WriteDev = 16,
+    // ReadDev = 17,
+    Open = 18,
+    Close = 19,
+    Read = 20,
+    Write = 21,
+    Seek = 22,
+    Fstat = 23,
+    Fsync = 24,
+    Ftruncate = 25,
+    Remove = 26,
     Unhandled = 255,
 }
 
@@ -54,9 +65,8 @@ impl From<usize> for Syscall {
             13 => Syscall::IpcTrySend,
             14 => Syscall::IpcRecv,
             15 => Syscall::Getchar,
-            16 => Syscall::WriteDev,
-            17 => Syscall::ReadDev,
-            18 => Syscall::FileOp,
+            // 16 => Syscall::WriteDev,
+            // 17 => Syscall::ReadDev,
             _ => Syscall::Unhandled,
         }
     }
@@ -84,9 +94,8 @@ pub fn do_syscall() {
         Syscall::IpcTrySend => sys_ipc_try_send(task, args[0], args[1], args[2], args[3]),
         Syscall::IpcRecv => sys_ipc_recv(task, args[0]),
         Syscall::Getchar => sys_getchar(),
-        Syscall::WriteDev => sys_write_dev(task, args[0], args[1], args[2]),
-        Syscall::ReadDev => sys_read_dev(task, args[0], args[1], args[2]),
-        Syscall::FileOp => sys_file_op(task, &args),
+        // Syscall::WriteDev => sys_write_dev(task, args[0], args[1], args[2]),
+        // Syscall::ReadDev => sys_read_dev(task, args[0], args[1], args[2]),
         _ => OsError::BadSyscall.into(),
     };
 }
@@ -225,13 +234,13 @@ pub fn sys_getchar() -> usize {
     c as usize
 }
 
-pub fn sys_write_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
-    0
-}
+// pub fn sys_write_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
+//     0
+// }
 
-pub fn sys_read_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
-    0
-}
+// pub fn sys_read_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
+//     0
+// }
 
 pub fn sys_file_op(task: Arc<TaskControlBlock>, args: &[usize]) -> usize {
     0

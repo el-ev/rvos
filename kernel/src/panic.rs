@@ -1,4 +1,4 @@
-use core::{panic::PanicInfo, sync::atomic::AtomicBool};
+use core::{panic::PanicInfo, sync::atomic::{AtomicBool, AtomicUsize}};
 
 use alloc::{format, string::String};
 use arch::get_hart_id;
@@ -7,6 +7,12 @@ use log::error;
 use crate::mm::layout::{__text_end, __text_start};
 
 static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
+static PANIC_HART: AtomicUsize = AtomicUsize::new(0);
+
+pub extern "C" fn panic_str(s: *const core::ffi::c_char) -> ! {
+    let s = unsafe { core::ffi::CStr::from_ptr(s) };
+    panic!("Panic: {:?}", s);
+}
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -17,13 +23,14 @@ fn panic(info: &PanicInfo) -> ! {
         .compare_exchange(
             false,
             true,
-            core::sync::atomic::Ordering::Acquire,
+            core::sync::atomic::Ordering::Release,
             core::sync::atomic::Ordering::Relaxed,
         )
-        .is_err()
+        .is_err() && PANIC_HART.load(core::sync::atomic::Ordering::Relaxed) != arch::tp()
     {
         loop {}
     }
+    PANIC_HART.store(arch::tp(), core::sync::atomic::Ordering::Relaxed);
     unsafe {
         crate::console::poison_lock();
     }

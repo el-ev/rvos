@@ -5,9 +5,11 @@ name = "kernel"
 version = "0.1.0"
 edition = "2024"
 authors = ["Qin-shihuang <0.0@owo.li>"]
+build = "../build.rs"
 
 [dependencies]
 arch = { path = "../crates/arch" }
+fs = { path = "../crates/fs" }
 sbi = { path = "../crates/sbi" }
 sync = { path = "../crates/sync" }
 allocator = { path = "../crates/allocator" }

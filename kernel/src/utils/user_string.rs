@@ -1,6 +1,6 @@
 use core::fmt::{self, Display};
 
-use alloc::sync::Arc;
+use alloc::{string::{String, ToString}, sync::Arc};
 
 use crate::{
     mm::{addr::VirtAddr, address_space::U_END, consts::PAGE_SIZE},
@@ -23,6 +23,11 @@ impl UnsafeUserString {
         unsafe {
             core::str::from_utf8_unchecked(core::slice::from_raw_parts(self.ptr, self.len.unwrap()))
         }
+    }
+
+    #[allow(dead_code)]
+    unsafe fn copied(&self) -> String {
+        unsafe { self.as_str().to_string() }
     }
 
     pub fn checked(&self) -> Option<UserString> {
