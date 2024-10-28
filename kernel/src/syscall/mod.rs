@@ -1,6 +1,6 @@
 use core::panic;
 
-use alloc::sync::Arc;
+use alloc::{sync::Arc, task};
 
 use crate::{
     console::getchar,
@@ -62,7 +62,8 @@ impl From<usize> for Syscall {
     }
 }
 
-pub fn do_syscall(task: Arc<TaskControlBlock>) {
+pub fn do_syscall() {
+    let task = crate::task::hart::get_current_task().unwrap();
     let syscall = Syscall::from(task.syscall_no());
     let ctx = task.get_context_mut();
     ctx.sepc += 4;
@@ -71,7 +72,7 @@ pub fn do_syscall(task: Arc<TaskControlBlock>) {
         Syscall::Putchar => sys_putchar(args[0]),
         Syscall::PrintConsole => sys_print_console(task, args[0], args[1]),
         Syscall::GetTaskId => sys_get_task_id(task),
-        Syscall::Yield => sys_yield(),
+        Syscall::Yield => sys_yield(task),
         Syscall::SetTlbModEntry => sys_set_tlb_mod_entry(task, args[0], args[1]),
         Syscall::MemAlloc => sys_mem_alloc(task, args[0], args[1], args[2]),
         Syscall::MemMap => sys_mem_map(task, args[0], args[1], args[2], args[3], args[4]),
@@ -118,8 +119,8 @@ fn sys_get_task_id(task: Arc<TaskControlBlock>) -> usize {
     task.pid().0
 }
 
-fn sys_yield() -> usize {
-    // TODO: nothing to do until scheduler is refactored
+fn sys_yield(task: Arc<TaskControlBlock>) -> usize {
+    task.set_yield_flag(true);
     OsError::Success.into()
 }
 

@@ -18,6 +18,7 @@ use crate::{
     task::user_space::UserPageFaultType,
     timer,
     trap::{context::UserContext, set_kernel_trap, set_user_trap},
+    utils::ring_buffer::RingBuffer,
 };
 
 use super::{
@@ -30,9 +31,7 @@ pub static SCHEDULER: Lazy<Scheduler> = Lazy::new(Scheduler::new);
 
 pub struct Scheduler {
     tasks: Mutex<BTreeMap<Pid, Arc<TaskControlBlock>>>,
-    queue: Mutex<[Option<Arc<TaskControlBlock>>; config::MAX_TASKS]>,
-    head: AtomicUsize,
-    tail: AtomicUsize,
+    queue: RingBuffer<Arc<TaskControlBlock>, { config::MAX_TASKS }>,
     alive_task_count: AtomicUsize,
 }
 
@@ -40,108 +39,69 @@ impl Scheduler {
     pub fn new() -> Self {
         Self {
             tasks: Mutex::new(BTreeMap::new()),
-            queue: Mutex::new([const { None }; config::MAX_TASKS]),
-            head: AtomicUsize::new(0),
-            tail: AtomicUsize::new(0),
+            queue: RingBuffer::new(),
             alive_task_count: AtomicUsize::new(0),
         }
     }
 
     pub fn submit_task(&self, task: Arc<TaskControlBlock>) -> Result<(), OsError> {
-        let mut tail = self.tail.load(Ordering::Relaxed);
-        loop {
-            let next_tail = (tail + 1) % config::MAX_TASKS;
-            if next_tail == self.head.load(Ordering::Relaxed) {
-                return Err(OsError::NoFreeTask);
-            }
-
-            match self.tail.compare_exchange_weak(
-                tail,
-                next_tail,
-                Ordering::Release,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => {
-                    self.tasks.lock().insert(task.pid(), task.clone());
-                    self.queue.lock()[tail] = Some(task);
-                    self.alive_task_count.fetch_add(1, Ordering::Release);
-                    return Ok(());
-                }
-                Err(x) => tail = x,
-            }
+        if self.queue.push(task.clone()).is_ok() {
+            self.tasks.lock().insert(task.pid(), task.clone());
+            self.alive_task_count.fetch_add(1, Ordering::Release);
+            Ok(())
+        } else {
+            Err(OsError::NoFreeTask)
         }
     }
 
     fn try_get_task(&self) -> Option<Arc<TaskControlBlock>> {
-        let mut head = self.head.load(Ordering::Relaxed);
-        loop {
-            if head == self.tail.load(Ordering::Relaxed) {
-                return None;
-            }
-
-            match self.head.compare_exchange_weak(
-                head,
-                (head + 1) % config::MAX_TASKS,
-                Ordering::Acquire,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => {
-                    let task = self.queue.lock()[head].take();
-                    return task;
-                }
-                Err(x) => head = x,
-            }
-        }
+        self.queue.pop()
     }
 
     fn return_task(&self, task: Arc<TaskControlBlock>) {
-        let mut tail = self.tail.load(Ordering::Relaxed);
-        loop {
-            let next_tail = (tail + 1) % config::MAX_TASKS;
-            if next_tail == self.head.load(Ordering::Relaxed) {
+        match self.queue.push(task) {
+            Ok(head) => {
+                let target_hart = head % get_hart_count();
+                wake_hart(target_hart);
+            }
+            Err(_) => {
                 panic!("Task queue is full, should not happen");
             }
-
-            match self.tail.compare_exchange_weak(
-                tail,
-                next_tail,
-                Ordering::Release,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => {
-                    self.queue.lock()[tail] = Some(task);
-
-                    let target_hart = (tail + 1) % get_hart_count();
-                    wake_hart(target_hart);
-                    return;
-                }
-                Err(x) => tail = x,
-            }
         }
+        
     }
 
     pub fn hart_loop(&self) -> ! {
         loop {
             clear_ipi();
-            if self.head.load(Ordering::Acquire) == self.tail.load(Ordering::Acquire) {
+            if self.queue.is_empty() {
                 if self.alive_task_count.load(Ordering::Acquire) == 0 {
                     panic!("No task to run");
                 }
                 riscv::asm::wfi();
+                continue;
             }
 
             match self.try_get_task() {
-                Some(task) => loop {
-                    self.execute(task.clone());
-                    if task.is_exited() {
-                        debug!("Task {:?} exited, runs: {}", task.pid(), task.runs());
-                        task.do_exit();
-                        self.tasks.lock().remove(&task.pid());
-                        self.alive_task_count
-                            .fetch_sub(1, core::sync::atomic::Ordering::Release);
-                        break;
+                Some(task) => 'taskloop: loop {
+                    let priority = task.get_priority();
+                    for _ in 0..priority {
+                        self.execute(task.clone());
+                        if task.is_exited() {
+                            debug!("Task {:?} exited, runs: {}", task.pid(), task.runs());
+                            task.do_exit();
+                            self.tasks.lock().remove(&task.pid());
+                            self.alive_task_count.fetch_sub(1, Ordering::Release);
+                            break 'taskloop;
+                        }
+                        if task.get_yield_flag() {
+                            break;
+                        }
                     }
-                    if self.head.load(Ordering::Acquire) != self.tail.load(Ordering::Acquire) {
+                    if task.get_yield_flag()
+                        || !self.queue.is_empty()
+                    {
+                        trace!("Task {:?} returned by hart {}", task.pid(), arch::tp());
                         self.return_task(task);
                         break;
                     }
@@ -152,7 +112,7 @@ impl Scheduler {
     }
 
     fn execute(&self, task: Arc<TaskControlBlock>) {
-        // debug!("Hart {} is running task {:?}", arch::tp(), task.pid());
+        trace!("Hart {} is running task {:?}", arch::tp(), task.pid());
         let sie_guard = SIEGuard::new();
         if task.status() != TaskStatus::Ready {
             panic!("Task {:?} is not ready, should not happen", task.pid());
@@ -162,6 +122,7 @@ impl Scheduler {
             switch_page_table(task.page_table().ppn());
             set_current_task(Some(task.clone()));
         }
+        task.set_status(TaskStatus::Running);
         timer::set_next_timeout();
         drop(sie_guard);
 
@@ -172,16 +133,17 @@ impl Scheduler {
         set_kernel_trap();
 
         let sie_guard = SIEGuard::new();
+        task.set_status(TaskStatus::Ready);
         task.inc_runs();
         let scause = riscv::register::scause::read().cause().try_into().unwrap();
         match scause {
             Trap::Interrupt(i) => match i {
-                Interrupt::SupervisorTimer => timer::set_next_timeout(),
-                Interrupt::SupervisorSoft => {},
+                Interrupt::SupervisorTimer => {}
+                Interrupt::SupervisorSoft => {}
                 Interrupt::SupervisorExternal => todo!(),
             },
             Trap::Exception(e) => match e {
-                Exception::UserEnvCall => syscall::do_syscall(task.clone()),
+                Exception::UserEnvCall => syscall::do_syscall(),
                 Exception::LoadPageFault
                 | Exception::StorePageFault
                 | Exception::InstructionPageFault => {

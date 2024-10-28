@@ -10,6 +10,7 @@ use super::taskdef::TaskControlBlock;
 
 // Guaranteed to be only accessed by the corresponding hart
 struct HartLocal {
+    #[allow(dead_code)]
     ipi_pending: AtomicBool,
     current_task: Option<Arc<TaskControlBlock>>,
 }
@@ -36,18 +37,18 @@ pub fn set_current_task(task: Option<Arc<TaskControlBlock>>) {
 }
 
 pub fn wake_hart(hart_id: usize) {
-    unsafe { &HART_LOCAL[hart_id] }
-        .ipi_pending
-        .store(true, core::sync::atomic::Ordering::Release);
+    // unsafe { &HART_LOCAL[hart_id] }
+    //     .ipi_pending
+    //     .store(true, core::sync::atomic::Ordering::Release);
     sbi::legacy::sbi_send_ipi(1 << hart_id);
 }
 
 pub fn clear_ipi() {
-    unsafe {
-        riscv::register::sip::clear_ssoft();
-    }
-    let hart_id = tp();
-    unsafe { &HART_LOCAL[hart_id] }
-        .ipi_pending
-        .store(false, core::sync::atomic::Ordering::Release);
+    // unsafe {
+    //     riscv::register::sip::clear_ssoft();
+    // }
+    // let hart_id = tp();
+    // unsafe { &HART_LOCAL[hart_id] }
+    //     .ipi_pending
+    //     .store(false, core::sync::atomic::Ordering::Release);
 }
