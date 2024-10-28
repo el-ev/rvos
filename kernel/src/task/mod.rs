@@ -1,6 +1,8 @@
+use arch::tp;
+use sbi::legacy::sbi_send_ipi;
 use taskdef::TaskControlBlock;
 
-use crate::include_bytes_align_as;
+use crate::{get_hart_count, include_bytes_align_as, mask};
 
 pub mod hart;
 pub mod pid;
@@ -30,6 +32,6 @@ pub fn run() -> ! {
     // task.clone().init(PAGEFAULT, vec![]);
     // let _ = schedule::SCHEDULER.add_task(task);
 
-    // sbi_send_ipi(mask!(get_hart_count()) & !(1 << tp()));
+    sbi_send_ipi(mask!(get_hart_count()) & !(1 << tp()));
     schedule::SCHEDULER.hart_loop()
 }

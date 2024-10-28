@@ -111,7 +111,6 @@ impl Scheduler {
                 Ok(_) => {
                     self.queue.lock()[tail] = Some(task);
 
-                    // TODO: Only wake up the hart that is sleeping
                     let target_hart = (tail + 1) % get_hart_count();
                     wake_hart(target_hart);
                     return;
@@ -122,20 +121,13 @@ impl Scheduler {
     }
 
     pub fn hart_loop(&self) -> ! {
-        unsafe {
-            riscv::register::sie::clear_ssoft();
-        }
         loop {
             clear_ipi();
             if self.head.load(Ordering::Acquire) == self.tail.load(Ordering::Acquire) {
                 if self.alive_task_count.load(Ordering::Acquire) == 0 {
                     panic!("No task to run");
                 }
-                unsafe {
-                    riscv::register::sie::set_ssoft();
-                    riscv::asm::wfi();
-                    riscv::register::sie::clear_ssoft();
-                }
+                riscv::asm::wfi();
             }
 
             match self.try_get_task() {
@@ -185,7 +177,7 @@ impl Scheduler {
         match scause {
             Trap::Interrupt(i) => match i {
                 Interrupt::SupervisorTimer => timer::set_next_timeout(),
-                Interrupt::SupervisorSoft => todo!(),
+                Interrupt::SupervisorSoft => {},
                 Interrupt::SupervisorExternal => todo!(),
             },
             Trap::Exception(e) => match e {

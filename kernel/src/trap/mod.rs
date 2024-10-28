@@ -30,7 +30,7 @@ pub fn init() {
     unsafe {
         riscv::register::sstatus::set_sie();
         riscv::register::sie::set_sext();
-        riscv::register::sie::set_ssoft();
+        // riscv::register::sie::set_ssoft();
     }
 }
 
