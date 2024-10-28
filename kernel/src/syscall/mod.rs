@@ -10,7 +10,7 @@ use crate::{
     error::OsError,
     mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE},
     print,
-    task::{pid::Pid, taskdef::TaskControlBlock, user_space::UserAreaPerm},
+    task::{pid::Pid, schedule, taskdef::{TaskControlBlock, TaskStatus}, user_space::UserAreaPerm},
     utils::user_string::UnsafeUserString,
 };
 
@@ -67,6 +67,15 @@ impl From<usize> for Syscall {
             15 => Syscall::Getchar,
             // 16 => Syscall::WriteDev,
             // 17 => Syscall::ReadDev,
+            18 => Syscall::Open,
+            19 => Syscall::Close,
+            20 => Syscall::Read,
+            21 => Syscall::Write,
+            22 => Syscall::Seek,
+            23 => Syscall::Fstat,
+            24 => Syscall::Fsync,
+            25 => Syscall::Ftruncate,
+            26 => Syscall::Remove,
             _ => Syscall::Unhandled,
         }
     }
@@ -83,6 +92,7 @@ pub fn do_syscall() {
         Syscall::PrintConsole => sys_print_console(task, args[0], args[1]),
         Syscall::GetTaskId => sys_get_task_id(task),
         Syscall::Yield => sys_yield(task),
+        Syscall::TaskDestroy => sys_task_destroy(task, args[0]),
         Syscall::SetTlbModEntry => sys_set_tlb_mod_entry(task, args[0], args[1]),
         Syscall::MemAlloc => sys_mem_alloc(task, args[0], args[1], args[2]),
         Syscall::MemMap => sys_mem_map(task, args[0], args[1], args[2], args[3], args[4]),
@@ -108,11 +118,9 @@ fn sys_putchar(c: usize) -> usize {
 fn sys_print_console(task: Arc<TaskControlBlock>, ptr: usize, len: usize) -> usize {
     match UnsafeUserString::new(task, ptr as *const _, Some(len)).checked() {
         Some(s) => {
-            // TODO: Seems bad
             unsafe {
                 riscv::register::sstatus::set_sum();
             }
-            // Is it possible that an interrupt occurs here?
             print!("{}", s);
             unsafe {
                 riscv::register::sstatus::clear_sum();
@@ -133,7 +141,20 @@ fn sys_yield(task: Arc<TaskControlBlock>) -> usize {
     OsError::Success.into()
 }
 
-pub fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
+fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
+    if let Some(task) = task.get_task(Pid(pid)) {
+        if task.status() == TaskStatus::Running {
+            task.set_yield_flag(true);
+            while task.status() == TaskStatus::Running {}
+        }
+        task.exit();
+        OsError::Success.into()
+    } else {
+        OsError::BadTask.into()
+    }
+}
+
+fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
         task.set_user_exception_entry(entry);
@@ -171,14 +192,46 @@ pub fn sys_mem_map(
     if is_illegal_user_va_range(src_va, PAGE_SIZE) || is_illegal_user_va_range(dst_va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
-    0
+    let src_task = schedule::get_task(Pid(src_pid));
+    if src_task.is_none() {
+        return OsError::BadTask.into();
+    }
+    let dst_task = schedule::get_task(Pid(dst_pid));
+    if dst_task.is_none() {
+        return OsError::BadTask.into();
+    }
+    let src_task = src_task.unwrap();
+    let dst_task = dst_task.unwrap();
+    match src_task
+        .memory()
+        .lock()
+        .find_frame(VirtAddr(src_va).floor_page())
+    {
+        Ok(frame) => {
+            let perm: UserAreaPerm = UserAreaPerm::from_bits(perm).unwrap();
+            dst_task
+                .memory()
+                .lock()
+                .map(VirtAddr(dst_va).floor_page(), frame, perm);
+            OsError::Success.into()
+        }
+        Err(e) => e.into(),
+    }
 }
 
 pub fn sys_mem_unmap(task: Arc<TaskControlBlock>, pid: usize, va: usize) -> usize {
     if is_illegal_user_va_range(va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
-    0
+    let task = task.get_task(Pid(pid));
+    if let Some(task) = task {
+        match task.memory().lock().unmap(VirtAddr(va).floor_page()) {
+            Ok(_) => OsError::Success,
+            Err(e) => e,
+        }
+    } else {
+        OsError::BadTask
+    }.into()
 }
 
 pub fn sys_exofork(task: Arc<TaskControlBlock>) -> usize {
@@ -186,11 +239,40 @@ pub fn sys_exofork(task: Arc<TaskControlBlock>) -> usize {
 }
 
 pub fn sys_set_env_status(task: Arc<TaskControlBlock>, pid: usize, status: usize) -> usize {
-    0
+    let status = match status {
+        0 => TaskStatus::Sleeping,
+        1 => TaskStatus::Ready,
+        _ => return OsError::InvalidParam.into(),
+    };
+    let task = task.get_task(Pid(pid));
+    if let Some(task) = task {
+        if task.status() == TaskStatus::Running {
+            task.set_yield_flag(true);
+            while task.status() == TaskStatus::Running {}
+        }
+        task.set_status(status);
+        OsError::Success.into()
+    } else {
+        OsError::BadTask.into()
+    }
 }
 
 pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) -> usize {
-    0
+    if is_illegal_user_va_range(ptr, 34 * size_of::<usize>()) {
+        return OsError::InvalidParam.into();
+    }
+    if let Some(task) = task.get_task(Pid(pid)) {
+        if task.status() == TaskStatus::Running {
+            task.set_yield_flag(true);
+            while task.status() == TaskStatus::Running {}
+        }
+        unsafe {
+            task.set_user_context(ptr);
+        }
+        OsError::Success.into()
+    } else {
+        OsError::BadTask.into()
+    }
 }
 
 pub fn sys_panic(task: Arc<TaskControlBlock>, ptr: usize) -> usize {

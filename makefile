@@ -23,6 +23,8 @@ QEMU_ARGS :=
 QEMU_ARGS += -smp 4
 QEMU_ARGS += -m 2G
 QEMU_ARGS += -machine $(BOARD)
+QEMU_ARGS += -drive file=$(ROOT)/dev0,format=raw,if=none,id=hd0
+QEMU_ARGS += -device virtio-blk-device,drive=hd0
 QEMU_ARGS += -nographic
 QEMU_ARGS += -bios $(SBI)
 QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200000

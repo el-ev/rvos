@@ -22,17 +22,16 @@ unsafe impl Sync for TaskControlBlock {}
 
 pub struct TaskControlBlock {
     pid: PidHandle,
-    _parent: Option<Weak<TaskControlBlock>>,
+    parent: Mutex<Option<Weak<TaskControlBlock>>>,
     exception_entry: Mutex<VirtAddr>,
     context: Mutex<Box<UserContext>>,
-    _ipc_info: Mutex<IpcInfo>,
+    ipc_info: Mutex<IpcInfo>,
     children: Mutex<Vec<Arc<TaskControlBlock>>>,
     memory: Mutex<UserSpace>,
     status: Mutex<TaskStatus>,
     is_exited: AtomicBool,
     exit_code: AtomicUsize,
     priority: RefCell<usize>,
-    // TODO: good?
     yield_flag: RefCell<bool>,
     runs: AtomicUsize,
 }
@@ -87,6 +86,17 @@ impl TaskControlBlock {
 
     pub fn set_user_exception_entry(&self, entry: usize) {
         *self.exception_entry.lock() = VirtAddr(entry);
+    }
+
+    pub unsafe fn set_user_context(&self, context: usize) {
+        let context = unsafe { core::slice::from_raw_parts(context as *const usize, 34) };
+        unsafe {
+            core::ptr::copy_nonoverlapping(
+                context.as_ptr(),
+                self.get_context_mut() as *mut UserContext as *mut usize,
+                34,
+            );
+        }
     }
 
     pub fn exit(&self) {
@@ -146,10 +156,10 @@ impl TaskControlBlock {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
             pid: alloc_pid(),
-            _parent: None,
+            parent: Mutex::new(None),
             exception_entry: Mutex::new(VirtAddr(0)),
             context: Mutex::new(Box::new(UserContext::default())),
-            _ipc_info: Mutex::new(IpcInfo::new()),
+            ipc_info: Mutex::new(IpcInfo::new()),
             children: Mutex::new(Vec::new()),
             memory: Mutex::new(UserSpace::new()),
             status: Mutex::new(TaskStatus::Uninit),
@@ -186,6 +196,13 @@ impl TaskControlBlock {
             self.pid(),
             self.exit_code()
         );
+        if let Some(parent) = self.parent.lock().as_ref() {
+            let parent = parent.upgrade().unwrap();
+            parent.children.lock().retain(|child| child.pid() != self.pid());
+        }
+        for child in self.children.lock().iter() {
+            *child.parent.lock() = None;
+        }
     }
 }
 

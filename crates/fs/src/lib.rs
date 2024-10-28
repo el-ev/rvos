@@ -11,15 +11,6 @@ pub fn set_panic_display(f: fn(&str) -> !) {
     }
 }
 
-// pub fn fs_panic(info: &str) -> ! {
-//     unsafe {
-//         if let Some(f) = PANIC_DISPLAY {
-//             f(info);
-//         }
-//     }
-//     unreachable!()
-// }
-
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     unsafe {

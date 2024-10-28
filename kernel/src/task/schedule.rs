@@ -55,7 +55,33 @@ impl Scheduler {
     }
 
     fn try_get_task(&self) -> Option<Arc<TaskControlBlock>> {
-        self.queue.pop()
+        let task = self.queue.pop();
+        if let Some(task) = task {
+            match task.status() {
+                TaskStatus::Ready => Some(task),
+                TaskStatus::Sleeping => {
+                    // The object which makes the task sleep take the responsibility to wake it up (and return it to the scheduler)
+                    self.alive_task_count.fetch_sub(1, Ordering::Release);
+                    None
+                }
+                TaskStatus::Running => {
+                    panic!(
+                        "Task {:?} is running and in queue, should not happen",
+                        task.pid()
+                    );
+                }
+                TaskStatus::Exited => {
+                    self.tasks.lock().remove(&task.pid());
+                    self.alive_task_count.fetch_sub(1, Ordering::Release);
+                    None
+                }
+                TaskStatus::Uninit => {
+                    panic!("Task {:?} is uninitialized, should not happen", task.pid());
+                }
+            }
+        } else {
+            None
+        }
     }
 
     fn return_task(&self, task: Arc<TaskControlBlock>) {
@@ -68,7 +94,6 @@ impl Scheduler {
                 panic!("Task queue is full, should not happen");
             }
         }
-        
     }
 
     pub fn hart_loop(&self) -> ! {
@@ -97,11 +122,11 @@ impl Scheduler {
                         if task.get_yield_flag() {
                             break;
                         }
+                        if task.status() == TaskStatus::Sleeping {
+                            break 'taskloop;
+                        }
                     }
-                    if task.get_yield_flag()
-                        || !self.queue.is_empty()
-                    {
-                        trace!("Task {:?} returned by hart {}", task.pid(), arch::tp());
+                    if task.get_yield_flag() || !self.queue.is_empty() {
                         self.return_task(task);
                         break;
                     }
@@ -112,11 +137,7 @@ impl Scheduler {
     }
 
     fn execute(&self, task: Arc<TaskControlBlock>) {
-        trace!("Hart {} is running task {:?}", arch::tp(), task.pid());
         let sie_guard = SIEGuard::new();
-        if task.status() != TaskStatus::Ready {
-            panic!("Task {:?} is not ready, should not happen", task.pid());
-        }
         let current_task = get_current_task();
         if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
             switch_page_table(task.page_table().ppn());
@@ -133,7 +154,10 @@ impl Scheduler {
         set_kernel_trap();
 
         let sie_guard = SIEGuard::new();
-        task.set_status(TaskStatus::Ready);
+        if task.status() == TaskStatus::Running {
+            // It may be set to Sleeping or Exited by other tasks
+            task.set_status(TaskStatus::Ready);
+        }
         task.inc_runs();
         let scause = riscv::register::scause::read().cause().try_into().unwrap();
         match scause {

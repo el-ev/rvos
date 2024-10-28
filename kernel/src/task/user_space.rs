@@ -2,7 +2,7 @@ use crate::{
     error::OsError,
     mm::{address_space::U_HEAP_BEG, consts::PAGE_SIZE},
 };
-use alloc::collections::btree_map::BTreeMap;
+use alloc::{collections::btree_map::BTreeMap, sync::Arc};
 use bitflags::bitflags;
 use log::trace;
 
@@ -115,6 +115,33 @@ impl UserSpace {
             .map_err(|_| ())?;
         Ok(())
     }
+
+    pub fn find_frame(&mut self, vpn: VirtPageNum) -> Result<Arc<FrameTracker>, OsError> {
+        if let Some(area) = self.areas.get_mut(&vpn) {
+            if !area.is_mapped() {
+                area.map(&mut self.page_table)?;
+            }
+            Ok(area.get_frame())
+        } else {
+            Err(OsError::InvalidParam)
+        }
+    }
+
+    pub fn map(&mut self, vpn: VirtPageNum, frame: Arc<FrameTracker>, perm: UserAreaPerm) {
+        let mut area = UserArea::new_with_frame(UserAreaType::Framed, perm, vpn, frame);
+        area.map(&mut self.page_table).unwrap();
+        self.areas.insert(vpn, area);
+    }
+
+    pub fn unmap(&mut self, vpn: VirtPageNum) -> Result<(), OsError> {
+        if let Some(area) = self.areas.get_mut(&vpn) {
+            area.unmap(&mut self.page_table);
+            self.areas.remove(&vpn);
+            Ok(())
+        } else {
+            Err(OsError::InvalidParam)
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -173,13 +200,12 @@ pub enum UserAreaType {
 pub struct UserArea {
     _ty: UserAreaType,
     perm: UserAreaPerm,
-    // TODO: Use Arc for FrameTracker?
-    frame: Option<FrameTracker>,
+    frame: Option<Arc<FrameTracker>>,
     vpn: VirtPageNum,
 }
 
 impl UserArea {
-    pub fn new(ty: UserAreaType, perm: UserAreaPerm, vpn: VirtPageNum) -> Self {
+    fn new(ty: UserAreaType, perm: UserAreaPerm, vpn: VirtPageNum) -> Self {
         Self {
             _ty: ty,
             perm,
@@ -188,15 +214,24 @@ impl UserArea {
         }
     }
 
-    pub fn perm(&self) -> UserAreaPerm {
+    fn new_with_frame(ty: UserAreaType, perm: UserAreaPerm, vpn: VirtPageNum, frame: Arc<FrameTracker>) -> Self {
+        Self {
+            _ty: ty,
+            perm,
+            frame: Some(frame),
+            vpn,
+        }
+    }
+
+    fn perm(&self) -> UserAreaPerm {
         self.perm
     }
 
-    pub fn map(&mut self, page_table: &mut PageTable) -> Result<(), OsError> {
+    fn map(&mut self, page_table: &mut PageTable) -> Result<(), OsError> {
         trace!("mapping user area: {:x?}, perm: {:?}", self.vpn, self.perm);
         if self.frame.is_none() {
             let frame = frame::alloc()?;
-            self.frame = Some(frame);
+            self.frame = Some(Arc::new(frame));
         }
         // TODO When type is not framed (file mapping)
         page_table.map(
@@ -207,15 +242,24 @@ impl UserArea {
         Ok(())
     }
 
-    pub fn unmap(&mut self, page_table: &mut PageTable) {
+    fn unmap(&mut self, page_table: &mut PageTable) {
         if self.frame.is_some() {
             page_table.unmap(self.vpn);
             self.frame = None;
         }
     }
 
-    pub fn copy_data(&self, page_table: &mut PageTable, data: &[u8]) {
+    fn copy_data(&self, page_table: &mut PageTable, data: &[u8]) {
         let dst = unsafe { page_table.query(self.vpn).unwrap().pa().as_mut_page_slice() };
         dst[..data.len()].copy_from_slice(data);
+    }
+
+    fn is_mapped(&self) -> bool {
+        self.frame.is_some()
+    }
+
+    fn get_frame(&self) -> Arc<FrameTracker> {
+        debug_assert!(self.frame.is_some());
+        self.frame.clone().unwrap()
     }
 }

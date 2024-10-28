@@ -21,7 +21,6 @@ mod device_tree;
 mod drivers;
 mod entry;
 mod error;
-mod fs;
 mod logging;
 mod mm;
 mod panic;
@@ -82,7 +81,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
         ebreak();
     }
     unsafe {
-        fs::set_panic_display(panic::panic_str);
+        set_panic_display(panic::panic_str);
     };
     task::run()
 }
@@ -141,4 +140,8 @@ pub fn start_hart(hartid: usize) {
         sbi::SbiError::Success => (),
         e => error!("Failed to start hart {}: {:?}", hartid, e),
     }
+}
+
+unsafe extern "C" {
+    fn set_panic_display(f: extern "C" fn(*const core::ffi::c_char) -> !);
 }
