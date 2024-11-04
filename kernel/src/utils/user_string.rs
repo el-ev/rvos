@@ -78,10 +78,6 @@ impl UnsafeUserString {
             let mut vpn = VirtAddr(self.ptr as usize).floor_page();
             let end = VirtAddr(self.ptr as usize + self.len.unwrap()).ceil_page();
             while vpn < end {
-                // let pte = self.task.page_table().query(vpn);
-                // if pte.is_none() || !pte.unwrap().flags().contains(PteFlags::U | PteFlags::V | PteFlags::R) {
-                //     return None;
-                // }
                 if !self.task.memory().lock().check_perm(vpn, UserAreaPerm::R) {
                     return None;
                 }

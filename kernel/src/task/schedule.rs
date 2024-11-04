@@ -127,6 +127,7 @@ impl Scheduler {
                         }
                     }
                     if task.get_yield_flag() || !self.queue.is_empty() {
+                        task.set_yield_flag(false);
                         self.return_task(task);
                         break;
                     }

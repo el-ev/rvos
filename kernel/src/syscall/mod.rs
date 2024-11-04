@@ -8,9 +8,14 @@ use alloc::sync::Arc;
 use crate::{
     console::getchar,
     error::OsError,
-    mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE},
+    mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE, paging::pte::PteFlags},
     print,
-    task::{pid::Pid, schedule, taskdef::{TaskControlBlock, TaskStatus}, user_space::UserAreaPerm},
+    task::{
+        pid::Pid,
+        schedule::{self, SCHEDULER},
+        taskdef::{IpcStatus, TaskControlBlock, TaskStatus},
+        user_space::UserAreaPerm,
+    },
     utils::user_string::UnsafeUserString,
 };
 
@@ -148,20 +153,20 @@ fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
             while task.status() == TaskStatus::Running {}
         }
         task.exit();
-        OsError::Success.into()
+        OsError::Success
     } else {
-        OsError::BadTask.into()
-    }
+        OsError::BadTask
+    }.into()
 }
 
 fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
         task.set_user_exception_entry(entry);
-        OsError::Success.into()
+        OsError::Success
     } else {
-        OsError::BadTask.into()
-    }
+        OsError::BadTask
+    }.into()
 }
 
 pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: usize) -> usize {
@@ -170,15 +175,17 @@ pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: u
     }
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
-        let perm: UserAreaPerm = UserAreaPerm::from_bits(perm).unwrap();
+        let perm = match UserAreaPerm::from_bits(perm) {
+            Some(perm) => perm,
+            None => return OsError::InvalidParam.into(),
+        };
         match task.memory().lock().alloc(VirtAddr(va).floor_page(), perm) {
             Ok(_) => OsError::Success,
             Err(e) => e,
         }
-        .into()
     } else {
-        OsError::BadTask.into()
-    }
+        OsError::BadTask
+    }.into()
 }
 
 pub fn sys_mem_map(
@@ -192,31 +199,33 @@ pub fn sys_mem_map(
     if is_illegal_user_va_range(src_va, PAGE_SIZE) || is_illegal_user_va_range(dst_va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
-    let src_task = schedule::get_task(Pid(src_pid));
-    if src_task.is_none() {
-        return OsError::BadTask.into();
-    }
-    let dst_task = schedule::get_task(Pid(dst_pid));
-    if dst_task.is_none() {
-        return OsError::BadTask.into();
-    }
-    let src_task = src_task.unwrap();
-    let dst_task = dst_task.unwrap();
+    let (src_task, dst_task) = match (
+        schedule::get_task(Pid(src_pid)),
+        schedule::get_task(Pid(dst_pid)),
+    ) {
+        (Some(src), Some(dst)) => (src, dst),
+        _ => return OsError::BadTask.into(),
+    };
     match src_task
         .memory()
         .lock()
         .find_frame(VirtAddr(src_va).floor_page())
     {
         Ok(frame) => {
-            let perm: UserAreaPerm = UserAreaPerm::from_bits(perm).unwrap();
+            let perm = match UserAreaPerm::from_bits(perm) {
+                Some(perm) => perm,
+                None => return OsError::InvalidParam.into(),
+            };
             dst_task
                 .memory()
                 .lock()
-                .map(VirtAddr(dst_va).floor_page(), frame, perm);
-            OsError::Success.into()
+                .map(VirtAddr(dst_va).floor_page(), frame, perm)
+                .map(|_| OsError::Success)
+                .unwrap_or_else(|e| e)
         }
-        Err(e) => e.into(),
+        Err(e) => e,
     }
+    .into()
 }
 
 pub fn sys_mem_unmap(task: Arc<TaskControlBlock>, pid: usize, va: usize) -> usize {
@@ -231,7 +240,8 @@ pub fn sys_mem_unmap(task: Arc<TaskControlBlock>, pid: usize, va: usize) -> usiz
         }
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_exofork(task: Arc<TaskControlBlock>) -> usize {
@@ -251,10 +261,10 @@ pub fn sys_set_env_status(task: Arc<TaskControlBlock>, pid: usize, status: usize
             while task.status() == TaskStatus::Running {}
         }
         task.set_status(status);
-        OsError::Success.into()
+        OsError::Success
     } else {
-        OsError::BadTask.into()
-    }
+        OsError::BadTask
+    }.into()
 }
 
 pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) -> usize {
@@ -269,10 +279,10 @@ pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) ->
         unsafe {
             task.set_user_context(ptr);
         }
-        OsError::Success.into()
+        OsError::Success
     } else {
-        OsError::BadTask.into()
-    }
+        OsError::BadTask
+    }.into()
 }
 
 pub fn sys_panic(task: Arc<TaskControlBlock>, ptr: usize) -> usize {
@@ -297,11 +307,58 @@ pub fn sys_ipc_try_send(
     src_va: usize,
     perm: usize,
 ) -> usize {
-    0
+    if src_va != 0 && is_illegal_user_va_range(src_va, PAGE_SIZE) {
+        return OsError::InvalidParam.into();
+    }
+    match schedule::get_task(Pid(pid)) {
+        Some(dst) => {
+            let mut ipc_info = dst.get_ipc_info().lock();
+            if ipc_info.recving == IpcStatus::NotReceiving {
+                return OsError::IpcNotRecv.into();
+            }
+            ipc_info.from = task.pid().0;
+            ipc_info.value = value;
+            let perm = match UserAreaPerm::from_bits(perm) {
+                Some(perm) => perm,
+                None => return OsError::InvalidParam.into(),
+            };
+            ipc_info.perm = perm.bits();
+            if src_va != 0 {
+                if is_illegal_user_va_range(src_va, PAGE_SIZE) {
+                    return OsError::InvalidParam.into();
+                }
+                match task.memory().lock().find_frame(VirtAddr(src_va).floor_page()) {
+                    Ok(frame) => {
+                        match dst
+                            .memory()
+                            .lock()
+                            .map(ipc_info.dstva.floor_page(), frame, perm)
+                        {
+                            Ok(_) => OsError::Success,
+                            Err(e) => e,
+                        }
+                    }
+                    Err(e) => e,
+                }
+            } else {
+                OsError::Success
+            }
+        },
+        None => OsError::BadTask,
+    }.into()
 }
 
 pub fn sys_ipc_recv(task: Arc<TaskControlBlock>, dst_va: usize) -> usize {
-    0
+    if dst_va != 0 && is_illegal_user_va_range(dst_va, PAGE_SIZE) {
+        return OsError::InvalidParam.into();
+    }
+    let dst_va = VirtAddr(dst_va);
+    let mut ipc_info = task.get_ipc_info().lock();
+    ipc_info.recving = IpcStatus::Receiving;
+    ipc_info.dstva = dst_va;
+    task.set_status(TaskStatus::Sleeping);
+    task.set_yield_flag(true);
+    OsError::Success.into()
 }
 
 pub fn sys_getchar() -> usize {
@@ -323,10 +380,6 @@ pub fn sys_getchar() -> usize {
 // pub fn sys_read_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
 //     0
 // }
-
-pub fn sys_file_op(task: Arc<TaskControlBlock>, args: &[usize]) -> usize {
-    0
-}
 
 pub fn sys_unhandled() -> usize {
     OsError::BadSyscall.into()

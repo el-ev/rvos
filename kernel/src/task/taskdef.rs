@@ -40,6 +40,7 @@ impl TaskControlBlock {
     pub fn pid(&self) -> Pid {
         self.pid.pid()
     }
+    
     pub fn status(&self) -> TaskStatus {
         *self.status.lock()
     }
@@ -57,6 +58,10 @@ impl TaskControlBlock {
 
     pub fn get_context_ptr(&self) -> *mut UserContext {
         &mut **self.context.lock() as *mut UserContext
+    }
+
+    pub fn get_ipc_info(&self) -> &Mutex<IpcInfo> {
+        &self.ipc_info
     }
 
     pub fn get_priority(&self) -> usize {
@@ -105,7 +110,6 @@ impl TaskControlBlock {
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_ok()
         {
-            // self.set_status(TaskStatus::Zombie);
             self.exit_code
                 .store(self.get_context().uregs[10], Ordering::Relaxed);
         }

@@ -127,10 +127,11 @@ impl UserSpace {
         }
     }
 
-    pub fn map(&mut self, vpn: VirtPageNum, frame: Arc<FrameTracker>, perm: UserAreaPerm) {
+    pub fn map(&mut self, vpn: VirtPageNum, frame: Arc<FrameTracker>, perm: UserAreaPerm) -> Result<(), OsError> {
         let mut area = UserArea::new_with_frame(UserAreaType::Framed, perm, vpn, frame);
-        area.map(&mut self.page_table).unwrap();
+        area.map(&mut self.page_table)?;
         self.areas.insert(vpn, area);
+        Ok(())
     }
 
     pub fn unmap(&mut self, vpn: VirtPageNum) -> Result<(), OsError> {
