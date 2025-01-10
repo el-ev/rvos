@@ -8,11 +8,11 @@ use alloc::sync::Arc;
 use crate::{
     console::getchar,
     error::OsError,
-    mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE, paging::pte::PteFlags},
+    mm::{addr::VirtAddr, address_space::is_illegal_user_va_range, consts::PAGE_SIZE},
     print,
     task::{
         pid::Pid,
-        schedule::{self, SCHEDULER},
+        schedule,
         taskdef::{IpcStatus, TaskControlBlock, TaskStatus},
         user_space::UserAreaPerm,
     },

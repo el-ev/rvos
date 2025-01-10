@@ -1,4 +1,3 @@
-cargo-features = ["edition2024"]
 
 [package]
 name = "kernel"
@@ -9,7 +8,7 @@ build = "../build.rs"
 
 [dependencies]
 arch = { path = "../crates/arch" }
-fs = { path = "../crates/fs" }
+fs = { path = "../crates/fs" , features = ["lib"] }
 sbi = { path = "../crates/sbi" }
 sync = { path = "../crates/sync" }
 allocator = { path = "../crates/allocator" }

@@ -80,9 +80,6 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
     unsafe {
         ebreak();
     }
-    unsafe {
-        set_panic_display(panic::panic_str);
-    };
     task::run()
 }
 
@@ -140,8 +137,4 @@ pub fn start_hart(hartid: usize) {
         sbi::SbiError::Success => (),
         e => error!("Failed to start hart {}: {:?}", hartid, e),
     }
-}
-
-unsafe extern "C" {
-    fn set_panic_display(f: extern "C" fn(*const core::ffi::c_char) -> !);
 }

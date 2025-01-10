@@ -9,6 +9,7 @@ use crate::mm::layout::{__text_end, __text_start};
 static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
 static PANIC_HART: AtomicUsize = AtomicUsize::new(0);
 
+#[allow(dead_code)]
 pub extern "C" fn panic_str(s: *const core::ffi::c_char) -> ! {
     let s = unsafe { core::ffi::CStr::from_ptr(s) };
     panic!("Panic: {:?}", s);
@@ -116,7 +117,7 @@ fn read_symbol() -> alloc::collections::btree_map::BTreeMap<(usize, usize), &'st
     )
     .unwrap();
     #[cfg(not(debug_assertions))]
-    let elf = ElfFile::new(
+    let elf = xmas_elf::ElfFile::new(
         include_bytes!("../../target/riscv64gc-unknown-none-elf/release/kernel").as_ref(),
     )
     .unwrap();

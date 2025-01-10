@@ -6,4 +6,8 @@ linker = "rust-lld"
 rustflags = [
     "-Clink-arg=-Tkernel/src/linker.lds",
     "-Cforce-frame-pointers=yes",
+    "-Csymbol-mangling-version=v0",
 ]
+
+[unstable]
+build-std = ["core", "alloc", "compiler_builtins", "panic_abort"]

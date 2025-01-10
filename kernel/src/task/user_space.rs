@@ -99,6 +99,8 @@ impl UserSpace {
     }
 
     pub fn handle_page_fault(&mut self, stval: usize, ty: UserPageFaultType) -> Result<(), ()> {
+        // TODO: CoW
+        
         let vpn = VirtAddr(stval).floor_page();
         let perm = match ty {
             UserPageFaultType::Read => UserAreaPerm::R,
@@ -142,6 +144,18 @@ impl UserSpace {
         } else {
             Err(OsError::InvalidParam)
         }
+    }
+
+    pub fn fork(&self) -> Self {
+        let mut new_space = UserSpace::new();
+        // for (vpn, area) in self.areas.iter() {
+        //     let mut new_area = area.clone();
+        //     if new_area.is_mapped() {
+        //         new_area.map(&mut new_space.page_table).unwrap();
+        //     }
+        //     new_space.areas.insert(*vpn, new_area);
+        // }
+        new_space
     }
 }
 

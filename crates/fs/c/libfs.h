@@ -5,6 +5,6 @@
 #include <stdlib.h>
 
 
-void panic(void);
+void __panic(void);
 
 void set_panic_display(void (*f)(const char*));

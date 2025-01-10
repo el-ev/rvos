@@ -7,8 +7,6 @@ use crate::mm::addr::{PhysAddr, PhysPageNum};
 use crate::mm::consts::{PTE_PPN_MASK, PTEFLAGS_MASK};
 use crate::mm::frame;
 
-// TODO: CoW
-
 bitflags! {
     #[derive(Clone, Copy, Debug)]
     pub struct PteFlags: u16 {
@@ -45,7 +43,7 @@ pub struct PageTableEntry {
 impl PageTableEntry {
     pub const fn new(ppn: PhysPageNum, flags: PteFlags) -> Self {
         Self {
-            bits: ppn.0 << 10 | flags.bits() as usize,
+            bits: (ppn.0 << 10) | flags.bits() as usize,
         }
     }
 

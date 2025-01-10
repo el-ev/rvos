@@ -5,6 +5,7 @@ target = "riscv64gc-unknown-none-elf"
 linker = "rust-lld"
 rustflags = [
     "-Cforce-frame-pointers=yes",
+    "-Csymbol-mangling-version=v0",
 ]
 
 [unstable]

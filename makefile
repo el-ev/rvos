@@ -31,8 +31,6 @@ QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200000
 QEMU_ARGS += -kernel $(KERNEL)
 
 build:
-	cd crates/fs && cargo build $(BUILDARGS)
-	objcopy --redefine-sym rust_begin_unwind=libfs_rust_begin_unwind target/riscv64gc-unknown-none-elf/debug/libfs.a target/riscv64gc-unknown-none-elf/debug/libfs.a
 	cd kernel && cargo build $(BUILDARGS) --bin kernel
 
 run: build kill
@@ -54,6 +52,9 @@ objdump: build
 kill:
 	killall $(QEMU) > /dev/null || true
 
+fslib:
+	cd crates/fs && RUSTFLAGS="--crate-type=staticlib" cargo build $(BUILDARGS) && cbindgen --config cbindgen.toml --output c/libfs.h
+
 user:
 	cd user && make
 	cd user_rust && cargo build $(BUILDARGS) --bin *
@@ -62,4 +63,4 @@ clean:
 	cargo clean
 	cd user && make clean
 
-.PHONY: run debug objdump kill clean user
+.PHONY: run debug objdump kill clean user fslib
