@@ -1,5 +1,7 @@
 use core::{
-    arch::asm, cell::RefCell, sync::atomic::{AtomicBool, AtomicUsize, Ordering}
+    arch::asm,
+    cell::RefCell,
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
 use alloc::{boxed::Box, rc::Weak, sync::Arc, vec::Vec};
@@ -40,7 +42,7 @@ impl TaskControlBlock {
     pub fn pid(&self) -> Pid {
         self.pid.pid()
     }
-    
+
     pub fn status(&self) -> TaskStatus {
         *self.status.lock()
     }
@@ -72,7 +74,7 @@ impl TaskControlBlock {
     pub fn set_priority(&self, priority: usize) {
         self.priority.replace(priority);
     }
-    
+
     pub fn get_yield_flag(&self) -> bool {
         *self.yield_flag.borrow()
     }
@@ -80,7 +82,7 @@ impl TaskControlBlock {
     pub fn set_yield_flag(&self, flag: bool) {
         *self.yield_flag.borrow_mut() = flag;
     }
-    
+
     pub fn syscall_no(&self) -> usize {
         self.get_context().uregs[17]
     }
@@ -202,7 +204,10 @@ impl TaskControlBlock {
         );
         if let Some(parent) = self.parent.lock().as_ref() {
             let parent = parent.upgrade().unwrap();
-            parent.children.lock().retain(|child| child.pid() != self.pid());
+            parent
+                .children
+                .lock()
+                .retain(|child| child.pid() != self.pid());
         }
         for child in self.children.lock().iter() {
             *child.parent.lock() = None;

@@ -148,11 +148,11 @@ impl Scheduler {
         timer::set_next_timeout();
         drop(sie_guard);
 
-        set_user_trap();
         unsafe {
+            set_user_trap();
             _kernel_to_user(task.get_context_ptr());
+            set_kernel_trap();
         }
-        set_kernel_trap();
 
         let sie_guard = SIEGuard::new();
         if task.status() == TaskStatus::Running {

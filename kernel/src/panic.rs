@@ -1,4 +1,7 @@
-use core::{panic::PanicInfo, sync::atomic::{AtomicBool, AtomicUsize}};
+use core::{
+    panic::PanicInfo,
+    sync::atomic::{AtomicBool, AtomicUsize},
+};
 
 use alloc::{format, string::String};
 use arch::get_hart_id;
@@ -27,7 +30,8 @@ fn panic(info: &PanicInfo) -> ! {
             core::sync::atomic::Ordering::Release,
             core::sync::atomic::Ordering::Relaxed,
         )
-        .is_err() && PANIC_HART.load(core::sync::atomic::Ordering::Relaxed) != arch::tp()
+        .is_err()
+        && PANIC_HART.load(core::sync::atomic::Ordering::Relaxed) != arch::tp()
     {
         loop {}
     }

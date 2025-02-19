@@ -2,16 +2,18 @@
 
 mod lazy;
 pub mod mutex;
-mod spin;
+mod once;
+mod helpers;
 
 pub use lazy::Lazy;
+pub use once::{Once, OnceCell};
 
-pub type SpinMutex<T> = mutex::Mutex<T, spin::SpinHelper>;
-pub type SpinNoIrqMutex<T> = mutex::Mutex<T, spin::SpinNoIrqHelper>;
+pub type SpinMutex<T> = mutex::Mutex<T, helpers::SpinHelper>;
+pub type SpinNoIrqMutex<T> = mutex::Mutex<T, helpers::SpinNoIrqHelper>;
 
 pub trait MutexHelper {
     type HelperData;
-    fn cpu_relax();
+    fn relax();
     fn before_lock() -> Self::HelperData;
     fn after_lock(helper_data: &Self::HelperData);
 }

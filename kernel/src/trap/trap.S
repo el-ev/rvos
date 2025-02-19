@@ -1,11 +1,3 @@
-.macro SAVEK reg, off
-    sd \reg, \off*8(sp)
-.endm
-
-.macro LOADK reg, off
-    ld \reg, \off*8(sp)
-.endm
-
 .macro SAVE reg, off
     sd \reg, \off*8(a0)
 .endm
@@ -13,56 +5,6 @@
 .macro LOAD reg, off
     ld \reg, \off*8(a0)
 .endm
-
-    .globl _kernel_to_kernel_trap
-    .type _kernel_to_kernel_trap, @function
-.align 3
-_kernel_to_kernel_trap:
-    addi sp, sp, -8*18
-    SAVEK ra, 0
-    SAVEK t0, 1
-    SAVEK t1, 2
-    SAVEK t2, 3
-    SAVEK a0, 4
-    SAVEK a1, 5
-    SAVEK a2, 6
-    SAVEK a3, 7
-    SAVEK a4, 8
-    SAVEK a5, 9
-    SAVEK a6, 10
-    SAVEK a7, 11
-    SAVEK t3, 12
-    SAVEK t4, 13
-    SAVEK t5, 14
-    SAVEK t6, 15
-    csrr t0, sepc
-    SAVEK t0, 16
-    mv a0, sp
-    csrr a1, scause
-    csrr a2, stval
-    SAVEK a2, 17
-    call kernel_trap_handler
-    LOADK t0, 16
-    csrw sepc, t0
-    LOADK t6, 15
-    LOADK t5, 14
-    LOADK t4, 13
-    LOADK t3, 12
-    LOADK a7, 11
-    LOADK a6, 10
-    LOADK a5, 9
-    LOADK a4, 8
-    LOADK a3, 7
-    LOADK a2, 6
-    LOADK a1, 5
-    LOADK a0, 4
-    LOADK t2, 3
-    LOADK t1, 2
-    LOADK t0, 1
-    LOADK ra, 0
-    addi sp, sp, 8*18
-    sret
-    .size _kernel_to_kernel_trap, . - _kernel_to_kernel_trap
 
     .globl _kernel_to_user
     .type _kernel_to_user, @function

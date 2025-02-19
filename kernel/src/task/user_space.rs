@@ -100,7 +100,7 @@ impl UserSpace {
 
     pub fn handle_page_fault(&mut self, stval: usize, ty: UserPageFaultType) -> Result<(), ()> {
         // TODO: CoW
-        
+
         let vpn = VirtAddr(stval).floor_page();
         let perm = match ty {
             UserPageFaultType::Read => UserAreaPerm::R,
@@ -129,7 +129,12 @@ impl UserSpace {
         }
     }
 
-    pub fn map(&mut self, vpn: VirtPageNum, frame: Arc<FrameTracker>, perm: UserAreaPerm) -> Result<(), OsError> {
+    pub fn map(
+        &mut self,
+        vpn: VirtPageNum,
+        frame: Arc<FrameTracker>,
+        perm: UserAreaPerm,
+    ) -> Result<(), OsError> {
         let mut area = UserArea::new_with_frame(UserAreaType::Framed, perm, vpn, frame);
         area.map(&mut self.page_table)?;
         self.areas.insert(vpn, area);
@@ -229,7 +234,12 @@ impl UserArea {
         }
     }
 
-    fn new_with_frame(ty: UserAreaType, perm: UserAreaPerm, vpn: VirtPageNum, frame: Arc<FrameTracker>) -> Self {
+    fn new_with_frame(
+        ty: UserAreaType,
+        perm: UserAreaPerm,
+        vpn: VirtPageNum,
+        frame: Arc<FrameTracker>,
+    ) -> Self {
         Self {
             _ty: ty,
             perm,

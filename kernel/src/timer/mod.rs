@@ -26,6 +26,11 @@ fn get_next_int_time() -> u64 {
     (time::read() + CLOCK_FREQ / INTERRUPT_PER_SEC) as u64
 }
 
+pub fn sleep(duration: usize) {
+    let end = time::read() + duration * CLOCK_FREQ;
+    while time::read() < end {}
+}
+
 // pub fn get_ticks() -> usize {
 //     unsafe { TICKS }
 // }

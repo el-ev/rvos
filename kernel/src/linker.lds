@@ -19,6 +19,7 @@ SECTIONS
     __text_start = .;
     .text : {
         *(.text.entry)
+        *(.text.stvec_table)
         *(.text .text.*)
     }
 

@@ -3,13 +3,14 @@
 #![feature(alloc_error_handler)]
 #![feature(naked_functions)]
 #![feature(postfix_match)]
+#![feature(abi_riscv_interrupt)]
+#![feature(fn_align)]
 
 extern crate alloc;
-use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 
+use core::{ptr::write_bytes, sync::atomic::AtomicU8};
 use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
-use riscv::asm::ebreak;
 use sbi::hsm::sbi_hart_get_status;
 use sync::Lazy;
 
@@ -77,9 +78,10 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
         }
     }
     mm::paging::unmap_low_memory();
-    unsafe {
-        ebreak();
-    }
+
+    // unsafe {
+    //     ebreak();
+    // }
     task::run()
 }
 

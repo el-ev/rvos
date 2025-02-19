@@ -9,5 +9,15 @@ rustflags = [
     "-Csymbol-mangling-version=v0",
 ]
 
+[profile.dev]
+
+
+[profile.release]
+trim-paths = "all"
+rustflags = [
+    "--remap-path-prefix=kernel/src="
+]
+
 [unstable]
 build-std = ["core", "alloc", "compiler_builtins", "panic_abort"]
+trim-paths=true

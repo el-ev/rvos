@@ -24,7 +24,9 @@ pub fn run() -> ! {
     for _ in 0..25 {
         let task = TaskControlBlock::new();
         task.clone().init(LOOP);
-        schedule::SCHEDULER.submit_task(task).expect("submit task failed");
+        schedule::SCHEDULER
+            .submit_task(task)
+            .expect("submit task failed");
     }
 
     sbi_send_ipi(mask!(get_hart_count()) & !(1 << tp()));

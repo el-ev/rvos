@@ -13,3 +13,5 @@ pub static mut MEMORY_SIZE: usize = 0;
 pub static mut UART_BASE: usize = 0;
 
 pub static mut PLIC_BASE: usize = 0;
+// TODO Add device memory region
+

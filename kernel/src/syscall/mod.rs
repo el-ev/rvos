@@ -156,7 +156,8 @@ fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
         OsError::Success
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
@@ -166,7 +167,8 @@ fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) 
         OsError::Success
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: usize) -> usize {
@@ -185,7 +187,8 @@ pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: u
         }
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_mem_map(
@@ -264,7 +267,8 @@ pub fn sys_set_env_status(task: Arc<TaskControlBlock>, pid: usize, status: usize
         OsError::Success
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) -> usize {
@@ -282,7 +286,8 @@ pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) ->
         OsError::Success
     } else {
         OsError::BadTask
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_panic(task: Arc<TaskControlBlock>, ptr: usize) -> usize {
@@ -327,7 +332,11 @@ pub fn sys_ipc_try_send(
                 if is_illegal_user_va_range(src_va, PAGE_SIZE) {
                     return OsError::InvalidParam.into();
                 }
-                match task.memory().lock().find_frame(VirtAddr(src_va).floor_page()) {
+                match task
+                    .memory()
+                    .lock()
+                    .find_frame(VirtAddr(src_va).floor_page())
+                {
                     Ok(frame) => {
                         match dst
                             .memory()
@@ -343,9 +352,10 @@ pub fn sys_ipc_try_send(
             } else {
                 OsError::Success
             }
-        },
+        }
         None => OsError::BadTask,
-    }.into()
+    }
+    .into()
 }
 
 pub fn sys_ipc_recv(task: Arc<TaskControlBlock>, dst_va: usize) -> usize {

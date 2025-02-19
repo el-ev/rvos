@@ -54,7 +54,8 @@ kill:
 
 fslib:
 	cd crates/fs && RUSTFLAGS="--crate-type=staticlib" cargo build $(BUILDARGS) && cbindgen --config cbindgen.toml --output c/libfs.h
-
+	cp $(TARGET_DIR)/libfs.a crates/fs/c/
+	
 user:
 	cd user && make
 	cd user_rust && cargo build $(BUILDARGS) --bin *

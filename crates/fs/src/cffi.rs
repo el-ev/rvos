@@ -2,7 +2,9 @@ static mut PANIC_DISPLAY: Option<fn(&str) -> !> = None;
 
 #[no_mangle]
 pub extern "C" fn set_panic_display(f: extern "C" fn(*const core::ffi::c_char) -> !) {
-    _set_panic_display(unsafe { core::mem::transmute::<extern "C" fn(*const u8) -> !, for<'a> fn(&'a str) -> !>(f) });
+    _set_panic_display(unsafe {
+        core::mem::transmute::<extern "C" fn(*const u8) -> !, for<'a> fn(&'a str) -> !>(f)
+    });
 }
 
 #[no_mangle]

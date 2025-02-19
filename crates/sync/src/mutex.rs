@@ -1,6 +1,7 @@
 use core::{
     cell::UnsafeCell,
     fmt,
+    marker::PhantomData,
     ops::{Deref, DerefMut},
     sync::atomic::{AtomicI32, Ordering},
 };
@@ -8,7 +9,7 @@ use core::{
 use crate::MutexHelper;
 
 pub struct Mutex<T: ?Sized, H: MutexHelper> {
-    _marker: core::marker::PhantomData<H>,
+    _helper: PhantomData<H>,
     state: AtomicI32,
     data: UnsafeCell<T>,
 }
@@ -19,7 +20,7 @@ unsafe impl<T: ?Sized + Send, H: MutexHelper> Send for Mutex<T, H> {}
 impl<T, H: MutexHelper> Mutex<T, H> {
     pub const fn new(data: T) -> Self {
         Self {
-            _marker: core::marker::PhantomData,
+            _helper: PhantomData,
             state: AtomicI32::new(0),
             data: UnsafeCell::new(data),
         }
@@ -30,7 +31,7 @@ impl<T, H: MutexHelper> Mutex<T, H> {
     }
 
     /// # Safety
-    /// Unsafe
+    /// This function is *extremely* unsafe, and should not be used lightly.
     pub unsafe fn force_unlock(&self) {
         self.state.store(0, Ordering::Release);
     }
@@ -54,7 +55,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
             }
             let mut i = 0;
             while self.state.load(Ordering::Relaxed) != 0 {
-                H::cpu_relax();
+                H::relax();
                 i += 1;
                 if i >= 0x100_000 {
                     panic!(
@@ -83,6 +84,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
                 helper_data,
             })
         } else {
+            H::after_lock(&helper_data);
             None
         }
     }

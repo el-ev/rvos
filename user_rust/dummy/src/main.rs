@@ -32,6 +32,7 @@ pub fn main() {
     loop {
         core::hint::black_box({
             let _x = 0;
+            0
         });
     }
 }

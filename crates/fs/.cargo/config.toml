@@ -7,6 +7,3 @@ rustflags = [
     "-Cforce-frame-pointers=yes",
     "-Csymbol-mangling-version=v0",
 ]
-
-[unstable]
-build-std = ["core", "panic_abort"]

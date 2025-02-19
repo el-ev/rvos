@@ -1,6 +1,9 @@
 use core::fmt::{self, Display};
 
-use alloc::{string::{String, ToString}, sync::Arc};
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+};
 
 use crate::{
     mm::{addr::VirtAddr, address_space::U_END, consts::PAGE_SIZE},
