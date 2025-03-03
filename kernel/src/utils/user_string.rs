@@ -99,6 +99,6 @@ pub struct UserString {
 
 impl Display for UserString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", unsafe { self.inner.as_str() })
+        write!(f, "{}", unsafe { self.inner.copied() })
     }
 }

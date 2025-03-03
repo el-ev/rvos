@@ -1,9 +1,10 @@
 mod consts;
 
+use core::arch::asm;
+
 use arch::tp;
 use log::info;
 use riscv::register::{sie, time};
-use sbi::legacy::sbi_set_timer;
 
 use self::consts::{CLOCK_FREQ, INTERRUPT_PER_SEC};
 
@@ -19,13 +20,20 @@ pub fn init() {
 }
 
 pub fn set_next_timeout() {
-    sbi_set_timer(get_next_int_time());
+    // sbi_set_timer(get_next_int_time());
+    unsafe {
+        asm!(
+            "csrw stimecmp, {0}",
+            in(reg) get_next_int_time()
+        )
+    }
 }
 
 fn get_next_int_time() -> u64 {
     (time::read() + CLOCK_FREQ / INTERRUPT_PER_SEC) as u64
 }
 
+#[allow(dead_code)]
 pub fn sleep(duration: usize) {
     let end = time::read() + duration * CLOCK_FREQ;
     while time::read() < end {}

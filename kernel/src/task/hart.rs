@@ -42,13 +42,3 @@ pub fn wake_hart(hart_id: usize) {
     //     .store(true, core::sync::atomic::Ordering::Release);
     sbi::legacy::sbi_send_ipi(1 << hart_id);
 }
-
-pub fn clear_ipi() {
-    // unsafe {
-    //     riscv::register::sip::clear_ssoft();
-    // }
-    // let hart_id = tp();
-    // unsafe { &HART_LOCAL[hart_id] }
-    //     .ipi_pending
-    //     .store(false, core::sync::atomic::Ordering::Release);
-}

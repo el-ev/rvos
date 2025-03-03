@@ -7,17 +7,10 @@ BASE_ADDRESS = 0xfffffff000200000;
 SECTIONS
 {
     . = BASE_ADDRESS;
-
-    .init : AT(INIT_ADDRESS) {
-        __boot_start = .;
-        *(.init.boot)
-        __boot_end = ABSOLUTE(.);
-    }
-
     __kernel_start = .;
 
     __text_start = .;
-    .text : {
+    .text : AT(INIT_ADDRESS) {
         *(.text.entry)
         *(.text.stvec_table)
         *(.text .text.*)
@@ -42,7 +35,7 @@ SECTIONS
 
     . = ALIGN(4K);
     __data_end = .;
-    .bss : {
+    .bss (NOLOAD) : {
         *(.bss.stack)
         __bss_start = .;
 

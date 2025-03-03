@@ -20,6 +20,7 @@ BUILDARGS += --release
 endif
 
 QEMU_ARGS :=
+QEMU_ARGS += -cpu max
 QEMU_ARGS += -smp 4
 QEMU_ARGS += -m 2G
 QEMU_ARGS += -machine $(BOARD)
@@ -27,7 +28,7 @@ QEMU_ARGS += -drive file=$(ROOT)/dev0,format=raw,if=none,id=hd0
 QEMU_ARGS += -device virtio-blk-device,drive=hd0
 QEMU_ARGS += -nographic
 QEMU_ARGS += -bios $(SBI)
-QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200000
+QEMU_ARGS += -device loader,file=$(KERNEL),addr=0x80200001
 QEMU_ARGS += -kernel $(KERNEL)
 
 build:
@@ -36,15 +37,16 @@ build:
 run: build kill
 	$(QEMU) $(QEMU_ARGS)
 
-debug: build debug_qemu kill
+debug: build kill
+	$(QEMU) $(QEMU_ARGS) -s -S &
 	@if [ "$(shell uname)" = "Darwin" ]; then \
 		lldb -o "target create $(KERNEL)" -o "gdb-remote 1234"; \
 	else \
 		gdb -ex "target remote tcp::1234" -ex "symbol-file $(KERNEL)"; \
 	fi
 
-debug_qemu: build kill
-	$(QEMU) $(QEMU_ARGS) -s -S &
+debug_qemu: build
+	$(QEMU) $(QEMU_ARGS) -s -S
 
 objdump: build
 	$(OBJDUMP) -DS $(KERNEL) > kernel.asm

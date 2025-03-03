@@ -2,7 +2,7 @@ use crate::{Mutex, utils::pool::UsizePool};
 
 static PID_POOL: Mutex<UsizePool> = Mutex::new(UsizePool::new());
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Pid(pub usize);
 
 impl PartialEq<usize> for Pid {

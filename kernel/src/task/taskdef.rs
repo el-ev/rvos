@@ -1,6 +1,5 @@
 use core::{
     arch::asm,
-    cell::RefCell,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
@@ -33,8 +32,8 @@ pub struct TaskControlBlock {
     status: Mutex<TaskStatus>,
     is_exited: AtomicBool,
     exit_code: AtomicUsize,
-    priority: RefCell<usize>,
-    yield_flag: RefCell<bool>,
+    priority: Mutex<usize>,
+    yield_flag: Mutex<bool>,
     runs: AtomicUsize,
 }
 
@@ -67,20 +66,20 @@ impl TaskControlBlock {
     }
 
     pub fn get_priority(&self) -> usize {
-        *self.priority.borrow()
+        *self.priority.lock()
     }
 
     #[allow(dead_code)]
     pub fn set_priority(&self, priority: usize) {
-        self.priority.replace(priority);
+        *self.priority.lock() = priority;
     }
 
     pub fn get_yield_flag(&self) -> bool {
-        *self.yield_flag.borrow()
+        *self.yield_flag.lock()
     }
 
     pub fn set_yield_flag(&self, flag: bool) {
-        *self.yield_flag.borrow_mut() = flag;
+        *self.yield_flag.lock() = flag;
     }
 
     pub fn syscall_no(&self) -> usize {
@@ -171,8 +170,8 @@ impl TaskControlBlock {
             status: Mutex::new(TaskStatus::Uninit),
             is_exited: AtomicBool::new(false),
             exit_code: AtomicUsize::new(0),
-            priority: RefCell::new(1),
-            yield_flag: RefCell::new(false),
+            priority: Mutex::new(1),
+            yield_flag: Mutex::new(false),
             runs: AtomicUsize::new(0),
         })
     }

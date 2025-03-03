@@ -3,7 +3,6 @@ use core::{
     fmt::{self, Write},
     sync::atomic::{AtomicBool, Ordering},
 };
-use sbi::dbcn::sbi_debug_console_write;
 use sync::Lazy;
 
 use crate::{
@@ -35,7 +34,7 @@ impl fmt::Write for Stdout {
             CONSOLE.puts(s);
         } else {
             // TODO: Here is a bug when printing user space string
-            sbi_debug_console_write((s.as_ptr() as usize - KERNEL_OFFSET) as u64, s.len() as u64);
+            sbi::dbcn::sbi_debug_console_write((s.as_ptr() as usize - KERNEL_OFFSET) as u64, s.len() as u64);
         }
         Ok(())
     }

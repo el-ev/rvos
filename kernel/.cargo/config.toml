@@ -7,12 +7,16 @@ rustflags = [
     "-Clink-arg=-Tkernel/src/linker.lds",
     "-Cforce-frame-pointers=yes",
     "-Csymbol-mangling-version=v0",
+    "-Ctarget-feature=+a,+v",
 ]
 
 [profile.dev]
 
 
 [profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
 trim-paths = "all"
 rustflags = [
     "--remap-path-prefix=kernel/src="

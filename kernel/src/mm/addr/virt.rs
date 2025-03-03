@@ -82,7 +82,7 @@ impl VirtAddr {
     }
 }
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct VirtPageNum(pub usize);
 
 impl Add<usize> for VirtPageNum {

@@ -1,9 +1,10 @@
 use crate::{
     error::OsError,
-    mm::{address_space::U_HEAP_BEG, consts::PAGE_SIZE},
+    mm::{addr::pa2kva, address_space::U_HEAP_BEG, consts::PAGE_SIZE},
 };
-use alloc::{collections::btree_map::BTreeMap, sync::Arc};
+use alloc::sync::Arc;
 use bitflags::bitflags;
+use hashbrown::HashMap;
 use log::trace;
 
 use crate::{
@@ -18,14 +19,14 @@ use crate::{
 
 pub struct UserSpace {
     pub page_table: PageTable,
-    areas: BTreeMap<VirtPageNum, UserArea>,
+    areas: HashMap<VirtPageNum, UserArea>,
 }
 
 impl UserSpace {
     pub fn new() -> Self {
         Self {
             page_table: PageTable::from_kernel_page_table(),
-            areas: BTreeMap::new(),
+            areas: HashMap::new(),
         }
     }
 
@@ -99,23 +100,46 @@ impl UserSpace {
     }
 
     pub fn handle_page_fault(&mut self, stval: usize, ty: UserPageFaultType) -> Result<(), ()> {
-        // TODO: CoW
-
         let vpn = VirtAddr(stval).floor_page();
         let perm = match ty {
             UserPageFaultType::Read => UserAreaPerm::R,
             UserPageFaultType::Write => UserAreaPerm::R | UserAreaPerm::W,
             UserPageFaultType::Execute => UserAreaPerm::R | UserAreaPerm::X,
         };
-        if !self.check_perm(vpn, perm) {
-            return Err(());
+        // TODO This is not verified
+        if let Some(area) = self.areas.get_mut(&vpn) {
+            if ty == UserPageFaultType::Write && area.cow {
+                let frame = area.get_frame();
+                if Arc::strong_count(&frame) > 1 {
+                    let new_frame = frame::alloc().map_err(|_| ())?;
+                    unsafe {
+                        let src = pa2kva(frame.ppn.into()).as_ptr::<u8>();
+                        let dst = pa2kva(new_frame.ppn.into()).as_mut_ptr::<u8>();
+                        core::ptr::copy_nonoverlapping(src, dst, PAGE_SIZE);
+                    }
+                    let mut new_area = UserArea::new_with_frame(
+                        UserAreaType::Framed,
+                        perm,
+                        vpn,
+                        Arc::new(new_frame),
+                    );
+                    new_area.map(&mut self.page_table).map_err(|_| ())?;
+                } else {
+                    // just remove COW flag
+                    area.cow = false;
+                    area.map(&mut self.page_table).map_err(|_| ())?;
+                }
+            } else if self.check_perm(vpn, perm) {
+                self.areas
+                    .get_mut(&vpn)
+                    .unwrap()
+                    .map(&mut self.page_table)
+                    .map_err(|_| ())?;
+            }
+            Ok(())
+        } else {
+            Err(())
         }
-        self.areas
-            .get_mut(&vpn)
-            .unwrap()
-            .map(&mut self.page_table)
-            .map_err(|_| ())?;
-        Ok(())
     }
 
     pub fn find_frame(&mut self, vpn: VirtPageNum) -> Result<Arc<FrameTracker>, OsError> {
@@ -151,15 +175,26 @@ impl UserSpace {
         }
     }
 
-    pub fn fork(&self) -> Self {
+    pub fn fork(&mut self) -> Self {
         let mut new_space = UserSpace::new();
-        // for (vpn, area) in self.areas.iter() {
-        //     let mut new_area = area.clone();
-        //     if new_area.is_mapped() {
-        //         new_area.map(&mut new_space.page_table).unwrap();
-        //     }
-        //     new_space.areas.insert(*vpn, new_area);
-        // }
+        for (vpn, area) in self.areas.iter_mut() {
+            if area.is_mapped() {
+                // Copy-on-write
+                let frame = area.get_frame();
+                let mut new_area = area.clone();
+                area.unmap(&mut self.page_table);
+                area.map_with_frame_cow(&mut self.page_table, frame.clone())
+                    .unwrap();
+                new_area
+                    .map_with_frame_cow(&mut new_space.page_table, frame)
+                    .unwrap();
+                new_space.areas.insert(*vpn, new_area);
+            } else {
+                // Could be directly cloned as the area is not mapped
+                new_space.areas.insert(*vpn, area.clone());
+            }
+        }
+        riscv::asm::sfence_vma_all();
         new_space
     }
 }
@@ -217,11 +252,13 @@ pub enum UserAreaType {
     Framed,
 }
 
+#[derive(Clone)]
 pub struct UserArea {
     _ty: UserAreaType,
     perm: UserAreaPerm,
     frame: Option<Arc<FrameTracker>>,
     vpn: VirtPageNum,
+    cow: bool,
 }
 
 impl UserArea {
@@ -231,6 +268,7 @@ impl UserArea {
             perm,
             frame: None,
             vpn,
+            cow: false,
         }
     }
 
@@ -245,6 +283,7 @@ impl UserArea {
             perm,
             frame: Some(frame),
             vpn,
+            cow: false,
         }
     }
 
@@ -258,11 +297,31 @@ impl UserArea {
             let frame = frame::alloc()?;
             self.frame = Some(Arc::new(frame));
         }
+        self.cow = false;
         // TODO When type is not framed (file mapping)
         page_table.map(
             self.vpn,
             self.frame.as_ref().unwrap().ppn,
             self.perm.as_pte_flag(),
+        );
+        Ok(())
+    }
+
+    fn map_with_frame_cow(
+        &mut self,
+        page_table: &mut PageTable,
+        frame: Arc<FrameTracker>,
+    ) -> Result<(), OsError> {
+        trace!(
+            "cow mapping user area: {:x?}, perm: {:?}",
+            self.vpn, self.perm
+        );
+        self.frame = Some(frame);
+        self.cow = true;
+        page_table.map(
+            self.vpn,
+            self.frame.as_ref().unwrap().ppn,
+            self.perm.as_pte_flag() | PteFlags::COW & !PteFlags::W,
         );
         Ok(())
     }
@@ -275,8 +334,15 @@ impl UserArea {
     }
 
     fn copy_data(&self, page_table: &mut PageTable, data: &[u8]) {
-        let dst = unsafe { page_table.query(self.vpn).unwrap().pa().as_mut_page_slice() };
-        dst[..data.len()].copy_from_slice(data);
+        unsafe {
+            let dst = page_table
+                .query(self.vpn)
+                .unwrap()
+                .pa()
+                .as_mut_page_slice()
+                .as_mut_ptr();
+            core::ptr::copy_nonoverlapping(data.as_ptr(), dst, data.len());
+        }
     }
 
     fn is_mapped(&self) -> bool {
@@ -284,7 +350,6 @@ impl UserArea {
     }
 
     fn get_frame(&self) -> Arc<FrameTracker> {
-        debug_assert!(self.frame.is_some());
         self.frame.clone().unwrap()
     }
 }

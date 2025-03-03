@@ -5,10 +5,11 @@
 #![feature(postfix_match)]
 #![feature(abi_riscv_interrupt)]
 #![feature(fn_align)]
+#![feature(abort_unwind)]
 
 extern crate alloc;
 
-use core::{ptr::write_bytes, sync::atomic::AtomicU8};
+use core::{convert::Infallible, sync::atomic::{AtomicU8, Ordering}};
 use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
 use sbi::hsm::sbi_hart_get_status;
@@ -43,18 +44,18 @@ const BANNER: &str = r#"  _______      ______   _____
 "#;
 
 #[unsafe(no_mangle)]
-extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
+extern "C" fn kernel_main(hartid: usize, dtb: usize) -> Infallible {
     clear_bss();
     logging::init();
     print!("{}", BANNER);
     info!("RVOS Started on hart {}", hartid);
-    STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+    STARTED_HART.fetch_add(1, Ordering::SeqCst);
     let _device_tree = device_tree::parse_fdt(dtb);
     mm::init();
     mm::map_kernel_regions(dtb);
     trap::init();
     console::CONSOLE.init();
-    console::CUSTOM_PRINT.store(true, core::sync::atomic::Ordering::SeqCst);
+    console::CUSTOM_PRINT.store(true, Ordering::SeqCst);
     info!("Switched to custom uart driver.");
     timer::init();
     #[cfg(feature = "smp")]
@@ -72,22 +73,30 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> ! {
                 break;
             }
             core::hint::spin_loop();
-            if STARTED_HART.load(core::sync::atomic::Ordering::SeqCst) == get_hart_count() as u8 {
+            if STARTED_HART.load(Ordering::SeqCst) == get_hart_count() as u8 {
                 break;
             }
         }
     }
     mm::paging::unmap_low_memory();
 
-    // unsafe {
-    //     ebreak();
-    // }
+    // let test_once : sync::Once = sync::Once::new();
+    // core::panic::abort_unwind(|| {
+    //     test_once.call_once(|| {
+    //         panic!("This is a test panic");
+    //     });
+    // });
+    // assert!(test_once.is_poisoned());
+
+    unsafe {
+        riscv::asm::ebreak();
+    }
     task::run()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn other_hart_main(hartid: usize) -> ! {
-    STARTED_HART.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+    STARTED_HART.fetch_add(1, Ordering::SeqCst);
     trap::init();
     info!("Hart {} started.", hartid);
     riscv::asm::wfi();
@@ -100,7 +109,7 @@ fn clear_bss() {
         fn __bss_end();
     }
     unsafe {
-        write_bytes(
+        core::ptr::write_bytes(
             __bss_start as *mut u8,
             0,
             (__bss_end as usize - __bss_start as usize) as usize,

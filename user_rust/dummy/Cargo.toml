@@ -5,4 +5,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-userlib_macro = { path = "../../crates/userlib_macro" }
+userlib_macro = { path = "../../user/userlib_macro" }

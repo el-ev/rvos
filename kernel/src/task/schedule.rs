@@ -1,7 +1,8 @@
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use alloc::{collections::btree_map::BTreeMap, sync::Arc};
+use alloc::sync::Arc;
 use arch::SIEGuard;
+use hashbrown::HashMap;
 use log::{debug, trace, warn};
 use riscv::interrupt::{
     Trap,
@@ -22,7 +23,7 @@ use crate::{
 };
 
 use super::{
-    hart::{clear_ipi, get_current_task, set_current_task, wake_hart},
+    hart::{get_current_task, set_current_task, wake_hart},
     pid::Pid,
     taskdef::{TaskControlBlock, TaskStatus},
 };
@@ -30,7 +31,7 @@ use super::{
 pub static SCHEDULER: Lazy<Scheduler> = Lazy::new(Scheduler::new);
 
 pub struct Scheduler {
-    tasks: Mutex<BTreeMap<Pid, Arc<TaskControlBlock>>>,
+    tasks: Mutex<HashMap<Pid, Arc<TaskControlBlock>>>,
     queue: RingBuffer<Arc<TaskControlBlock>, { config::MAX_TASKS }>,
     alive_task_count: AtomicUsize,
 }
@@ -38,7 +39,7 @@ pub struct Scheduler {
 impl Scheduler {
     pub fn new() -> Self {
         Self {
-            tasks: Mutex::new(BTreeMap::new()),
+            tasks: Mutex::new(HashMap::new()),
             queue: RingBuffer::new(),
             alive_task_count: AtomicUsize::new(0),
         }
@@ -88,7 +89,7 @@ impl Scheduler {
         match self.queue.push(task) {
             Ok(head) => {
                 let target_hart = head % get_hart_count();
-                wake_hart(target_hart);
+                wake_hart(target_hart); // TODO: bad
             }
             Err(_) => {
                 panic!("Task queue is full, should not happen");
@@ -98,7 +99,8 @@ impl Scheduler {
 
     pub fn hart_loop(&self) -> ! {
         loop {
-            clear_ipi();
+            // sbi::legacy::sbi_clear_ipi();
+            unsafe { riscv::register::sip::clear_ssoft() };
             if self.queue.is_empty() {
                 if self.alive_task_count.load(Ordering::Acquire) == 0 {
                     panic!("No task to run");
@@ -146,6 +148,9 @@ impl Scheduler {
         }
         task.set_status(TaskStatus::Running);
         timer::set_next_timeout();
+        unsafe {
+            riscv::register::sie::clear_ssoft();
+        }
         drop(sie_guard);
 
         unsafe {
@@ -164,7 +169,9 @@ impl Scheduler {
         match scause {
             Trap::Interrupt(i) => match i {
                 Interrupt::SupervisorTimer => {}
-                Interrupt::SupervisorSoft => {}
+                Interrupt::SupervisorSoft => {
+            unsafe { riscv::register::sip::clear_ssoft() };
+                }
                 Interrupt::SupervisorExternal => todo!(),
             },
             Trap::Exception(e) => match e {
@@ -217,6 +224,9 @@ impl Scheduler {
                 }
             },
         };
+        unsafe {
+            riscv::register::sie::set_ssoft();
+        }
         drop(sie_guard);
     }
 }

@@ -9,7 +9,7 @@ use crate::mm::{
 
 #[naked]
 #[unsafe(no_mangle)]
-#[unsafe(link_section = ".init.boot")]
+#[unsafe(link_section = ".text.entry")]
 unsafe extern "C" fn _low_entry() -> ! {
     unsafe {
         naked_asm!(
@@ -32,7 +32,7 @@ unsafe extern "C" fn _low_entry() -> ! {
 
 #[naked]
 #[unsafe(no_mangle)]
-#[unsafe(link_section = ".init.boot")]
+#[unsafe(link_section = ".text.entry")]
 pub unsafe extern "C" fn _second_boot() -> ! {
     unsafe {
         naked_asm!(
