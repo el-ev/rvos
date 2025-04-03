@@ -21,18 +21,18 @@ pub const K_END: usize = 0xffff_ffff_ffff_ffff;
 pub const U_BEG: usize = 0x0000_0000_0001_0000;
 
 pub const U_DATA_BEG: usize = 0x0000_0000_0001_0000;
-pub const U_DATA_END: usize = 0x0000_0000_4000_0000;
+pub const U_DATA_END: usize = 0x0000_0000_1000_0000;
 
-pub const U_HEAP_BEG: usize = 0x0000_0000_4000_0000;
-pub const U_HEAP_END: usize = 0x0000_0000_8000_0000;
+pub const U_HEAP_BEG: usize = 0x0000_0000_1000_0000;
+pub const U_HEAP_END: usize = 0x0000_0000_2000_0000;
 
-pub const U_STACK_BEG: usize = 0x0000_0001_0000_0000;
-pub const U_STACK_END: usize = 0x0000_0002_0000_0000;
+pub const U_STACK_BEG: usize = 0x0000_0000_2000_0000;
+pub const U_STACK_END: usize = 0x0000_0000_3000_0000;
 
-pub const U_FILE_MAPPING_BEG: usize = 0x0000_0002_0000_0000;
-pub const U_FILE_MAPPING_END: usize = 0x0000_0003_0000_0000;
+pub const U_FILE_MAPPING_BEG: usize = 0x0000_0000_3000_0000;
+pub const U_FILE_MAPPING_END: usize = 0x0000_0000_4000_0000;
 
-pub const U_END: usize = 0x0000_0004_0000_0000;
+pub const U_END: usize = 0x0000_0000_4000_0000;
 
 pub const PHYSICAL_MEMORY_START: usize = 0x8000_0000;
 pub const KERNEL_OFFSET: usize = K_PHYSICAL_MEMORY_BEG - PHYSICAL_MEMORY_START;
