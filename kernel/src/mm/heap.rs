@@ -1,12 +1,12 @@
 use core::ptr::addr_of_mut;
 
-use allocator::BuddyAllocator;
+use allocator::LockedAllocator;
 use log::info;
 
 use crate::config::KERNEL_HEAP_SIZE;
 
 #[global_allocator]
-static HEAP_ALLOCATOR: BuddyAllocator<32> = BuddyAllocator::new();
+static HEAP_ALLOCATOR: LockedAllocator<32> = LockedAllocator::new();
 static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 
 pub fn init() {

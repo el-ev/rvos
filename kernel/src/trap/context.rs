@@ -17,21 +17,34 @@ impl UserContext {}
 
 impl Debug for UserContext {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "UserContext {{ uregs: [")?;
+        writeln!(f, "UserContext {{")?;
+        writeln!(f, "  uregs: [")?;
         for i in 0..32 {
-            write!(f, "x{}: {:#x}, ", i, self.uregs[i])?;
+            if i % 4 == 0 {
+                if i != 0 {
+                    writeln!(f)?;
+                }
+                write!(f, "    ")?;
+            }
+            write!(f, "x{:<2}: {:#18x}, ", i, self.uregs[i])?;
         }
-        writeln!(f, "])")?;
-        writeln!(f, "usstatus: {:#x}", self.usstatus)?;
-        writeln!(f, "sepc: {:#x}", self.sepc)?;
-        writeln!(f, "ksregs: [")?;
+        writeln!(f, "],")?;
+        writeln!(f, "  usstatus: {:#x},", self.usstatus)?;
+        writeln!(f, "  sepc: {:#x},", self.sepc)?;
+        writeln!(f, "  ksregs: [")?;
         for i in 0..12 {
-            write!(f, "s{}: {:#x}, ", i, self.ksregs[i])?;
+            if i % 4 == 0 {
+                if i != 0 {
+                    writeln!(f)?;
+                }
+                write!(f, "    ")?;
+            }
+            write!(f, "s{:<2}: {:#18x}, ", i, self.ksregs[i])?;
         }
-        writeln!(f, "])")?;
-        writeln!(f, "kra: {:#x}", self.kra)?;
-        writeln!(f, "ksp: {:#x}", self.ksp)?;
-        writeln!(f, "ktp: {:#x}", self.ktp)?;
-        Ok(())
+        writeln!(f, "],")?;
+        writeln!(f, "  kra: {:#x},", self.kra)?;
+        writeln!(f, "  ksp: {:#x},", self.ksp)?;
+        writeln!(f, "  ktp: {:#x}", self.ktp)?;
+        writeln!(f, "}}")
     }
 }

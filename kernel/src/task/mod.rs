@@ -21,13 +21,13 @@ pub fn run() -> ! {
     task.clone().init(LOOP);
     task.set_priority(2);
     let _ = schedule::SCHEDULER.submit_task(task);
-    for _ in 0..25 {
-        let task = TaskControlBlock::new();
-        task.clone().init(LOOP);
-        schedule::SCHEDULER
-            .submit_task(task)
-            .expect("submit task failed");
-    }
+    // for _ in 0..25 {
+    //     let task = TaskControlBlock::new();
+    //     task.clone().init(LOOP);
+    //     schedule::SCHEDULER
+    //         .submit_task(task)
+    //         .expect("submit task failed");
+    // }
 
     sbi_send_ipi(mask!(get_hart_count()) & !(1 << tp()));
     schedule::SCHEDULER.hart_loop()

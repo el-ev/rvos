@@ -140,7 +140,6 @@ impl Scheduler {
     }
 
     fn execute(&self, task: Arc<TaskControlBlock>) {
-        let sie_guard = SIEGuard::new();
         let current_task = get_current_task();
         if !(current_task.is_some() && current_task.unwrap().pid() == task.pid()) {
             switch_page_table(task.page_table().ppn());
@@ -151,7 +150,6 @@ impl Scheduler {
         unsafe {
             riscv::register::sie::clear_ssoft();
         }
-        drop(sie_guard);
 
         unsafe {
             set_user_trap();
@@ -159,7 +157,6 @@ impl Scheduler {
             set_kernel_trap();
         }
 
-        let sie_guard = SIEGuard::new();
         if task.status() == TaskStatus::Running {
             // It may be set to Sleeping or Exited by other tasks
             task.set_status(TaskStatus::Ready);
@@ -227,7 +224,6 @@ impl Scheduler {
         unsafe {
             riscv::register::sie::set_ssoft();
         }
-        drop(sie_guard);
     }
 }
 

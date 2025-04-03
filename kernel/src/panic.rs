@@ -7,7 +7,7 @@ use alloc::{format, string::String};
 use arch::get_hart_id;
 use log::error;
 
-use crate::mm::layout::{__bss_end, __data_end, __text_end, __text_start};
+use crate::{mm::layout::{__bss_end, __data_end, __text_end, __text_start}, task};
 
 static PANIC_HAPPENING: AtomicBool = AtomicBool::new(false);
 static PANIC_HART: AtomicUsize = AtomicUsize::new(0);
@@ -33,22 +33,53 @@ fn panic(info: &PanicInfo) -> ! {
     unsafe {
         crate::console::poison_lock();
     }
+    let cur_task = task::hart::get_current_task();
     if let Some(location) = info.location() {
-        error!(
-            "\x1b[1;31mPanicked: \"{}\" from hart {} at {}:{}{}\x1b[1;0m",
-            info.message(),
-            get_hart_id(),
-            location.file(),
-            location.line(),
-            backtrace()
-        );
+        if let Some(task) = cur_task {
+            error!(
+                "\x1b[1;31mPanicked: \"{}\" from hart {} at {}:{} in task {:?}\n Context: {:?}{}\x1b[1;0m",
+                info.message(),
+                get_hart_id(),
+                location.file(),
+                location.line(),
+                task.pid(),
+                task.get_context(),
+                backtrace()
+            );
+        } else {
+            error!(
+                "\x1b[1;31mPanicked: \"{}\" from hart {} at {}:{}{}\x1b[1;0m",
+                info.message(),
+                get_hart_id(),
+                location.file(),
+                location.line(),
+                backtrace()
+            );
+        }
     } else {
-        error!(
-            "\x1b[1;31mPanicked: {} from hart {}{}\x1b[1;0m",
-            info.message(),
-            get_hart_id(),
-            backtrace()
-        );
+        // error!(
+        //     "\x1b[1;31mPanicked: {} from hart {}{}\x1b[1;0m",
+        //     info.message(),
+        //     get_hart_id(),
+        //     backtrace()
+        // );
+        if let Some(task) = cur_task {
+            error!(
+                "\x1b[1;31mPanicked: \"{}\" from hart {} in task {:?}\n Context: {:?}{}\x1b[1;0m",
+                info.message(),
+                get_hart_id(),
+                task.pid(),
+                task.get_context(),
+                backtrace()
+            );
+        } else {
+            error!(
+                "\x1b[1;31mPanicked: \"{}\" from hart {}{}\x1b[1;0m",
+                info.message(),
+                get_hart_id(),
+                backtrace()
+            );
+        }
     }
     sbi::reset::sbi_shutdown()
 }

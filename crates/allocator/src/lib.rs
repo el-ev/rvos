@@ -10,25 +10,25 @@ mod list;
 
 use buddy::Heap;
 
-pub struct BuddyAllocator<const ORDER: usize> {
+pub struct LockedAllocator<const ORDER: usize> {
     heap: SpinNoIrqMutex<Heap<ORDER>>,
 }
 
-impl<const ORDER: usize> Default for BuddyAllocator<ORDER> {
+impl<const ORDER: usize> Default for LockedAllocator<ORDER> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const ORDER: usize> BuddyAllocator<ORDER> {
+impl<const ORDER: usize> LockedAllocator<ORDER> {
     pub const fn new() -> Self {
-        BuddyAllocator {
+        LockedAllocator {
             heap: SpinNoIrqMutex::new(Heap::new()),
         }
     }
 }
 
-impl<const ORDER: usize> Deref for BuddyAllocator<ORDER> {
+impl<const ORDER: usize> Deref for LockedAllocator<ORDER> {
     type Target = SpinNoIrqMutex<Heap<ORDER>>;
 
     fn deref(&self) -> &Self::Target {
@@ -36,7 +36,7 @@ impl<const ORDER: usize> Deref for BuddyAllocator<ORDER> {
     }
 }
 
-unsafe impl<const ORDER: usize> GlobalAlloc for BuddyAllocator<ORDER> {
+unsafe impl<const ORDER: usize> GlobalAlloc for LockedAllocator<ORDER> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.heap
             .lock()

@@ -69,6 +69,10 @@ impl Once {
         self.state.load(Ordering::Acquire) == OnceState::Complete as u8
     }
 
+    pub fn is_running(&self) -> bool {
+        self.state.load(Ordering::Acquire) == OnceState::Running as u8
+    }
+
     pub fn is_poisoned(&self) -> bool {
         self.state.load(Ordering::Acquire) == OnceState::Poisoned as u8
     }
@@ -199,19 +203,37 @@ impl<T> OnceCell<T> {
         }
     }
 
+    // #[allow(clippy::result_unit_err)]
+    // pub fn initialize(&self, value: T) -> Result<(), ()> {
+    //     if self.once.is_completed() {
+    //         Err(())
+    //     } else {
+    //         self.once.call_once(|| {
+    //             // SAFETY: We only write to the `data` field on the first call
+    //             unsafe {
+    //                 *self.data.get() = MaybeUninit::new(value);
+    //             }
+    //         });
+    //         Ok(())
+    //     }
+    // }
     #[allow(clippy::result_unit_err)]
-    pub fn initialize(&self, value: T) -> Result<(), ()> {
-        if self.once.is_completed() {
+    pub fn initialize(&self, f: impl FnOnce() -> T) -> Result<(), ()> {
+        if self.once.is_completed() || self.once.is_running() {
             Err(())
         } else {
             self.once.call_once(|| {
                 // SAFETY: We only write to the `data` field on the first call
                 unsafe {
-                    *self.data.get() = MaybeUninit::new(value);
+                    *self.data.get() = MaybeUninit::new(f());
                 }
             });
             Ok(())
         }
+    }
+
+    pub fn wait(&self) {
+        self.once.wait();
     }
 }
 

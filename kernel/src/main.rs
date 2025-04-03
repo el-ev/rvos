@@ -5,7 +5,6 @@
 #![feature(postfix_match)]
 #![feature(abi_riscv_interrupt)]
 #![feature(fn_align)]
-#![feature(abort_unwind)]
 
 extern crate alloc;
 
@@ -80,13 +79,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> Infallible {
     }
     mm::paging::unmap_low_memory();
 
-    // let test_once : sync::Once = sync::Once::new();
-    // core::panic::abort_unwind(|| {
-    //     test_once.call_once(|| {
-    //         panic!("This is a test panic");
-    //     });
-    // });
-    // assert!(test_once.is_poisoned());
+    timer::sleep(1);
 
     unsafe {
         riscv::asm::ebreak();

@@ -24,8 +24,9 @@ impl Log for Logger {
         };
         if record.level() == Level::Error {
             let msg = format!(
-                "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
+                "\x1b[1;{}m[{}][{}:{}][{}] {}\x1b[0m",
                 color,
+                arch::tp(),
                 record.file().unwrap_or("unknown"),
                 record.line().unwrap_or(0),
                 record.level(),
@@ -37,8 +38,9 @@ impl Log for Logger {
             );
         } else {
             println!(
-                "\x1b[1;{}m[{}:{}][{}] {}\x1b[0m",
+                "\x1b[1;{}m[{}][{}:{}][{}] {}\x1b[0m",
                 color,
+                arch::tp(),
                 record.file().unwrap_or("unknown"),
                 record.line().unwrap_or(0),
                 record.level(),
