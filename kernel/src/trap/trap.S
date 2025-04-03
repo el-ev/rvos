@@ -84,6 +84,7 @@ _user_to_kernel_trap:
     SAVE x6, 6
     SAVE x7, 7
     SAVE x8, 8
+    SAVE x9, 9
     csrr x9, sscratch
     SAVE x9, 10
     SAVE x11, 11
