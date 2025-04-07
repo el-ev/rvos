@@ -1,0 +1,21 @@
+#[repr(usize)]
+pub enum SyscallId {
+    SysPutchar,
+    SysPrintCons,
+    SysGetEnvId,
+    SysYield,
+    SysEnvDestory,
+    __Unused1,
+    SysMemAlloc,
+    SysMemMap,
+    SysMemUnmap,
+    SysExofork,
+    SysSetEnvStatus,
+    __Unused2,
+    SysPanic,
+    SysIpcTrySend,
+    SysIpcRecv,
+    SysCGetc,
+    SysWriteDev,
+    SysReadDev,
+}

@@ -1,8 +1,7 @@
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use alloc::sync::Arc;
+use alloc::{collections::btree_map::BTreeMap, sync::Arc};
 use arch::SIEGuard;
-use hashbrown::HashMap;
 use log::{debug, trace, warn};
 use riscv::interrupt::{
     Trap,
@@ -31,7 +30,7 @@ use super::{
 pub static SCHEDULER: Lazy<Scheduler> = Lazy::new(Scheduler::new);
 
 pub struct Scheduler {
-    tasks: Mutex<HashMap<Pid, Arc<TaskControlBlock>>>,
+    tasks: Mutex<BTreeMap<Pid, Arc<TaskControlBlock>>>,
     queue: RingBuffer<Arc<TaskControlBlock>, { config::MAX_TASKS }>,
     alive_task_count: AtomicUsize,
 }
@@ -39,7 +38,7 @@ pub struct Scheduler {
 impl Scheduler {
     pub fn new() -> Self {
         Self {
-            tasks: Mutex::new(HashMap::new()),
+            tasks: Mutex::new(BTreeMap::new()),
             queue: RingBuffer::new(),
             alive_task_count: AtomicUsize::new(0),
         }
@@ -167,7 +166,7 @@ impl Scheduler {
             Trap::Interrupt(i) => match i {
                 Interrupt::SupervisorTimer => {}
                 Interrupt::SupervisorSoft => {
-            unsafe { riscv::register::sip::clear_ssoft() };
+                    unsafe { riscv::register::sip::clear_ssoft() };
                 }
                 Interrupt::SupervisorExternal => todo!(),
             },
@@ -192,10 +191,11 @@ impl Scheduler {
                         Ok(()) => {}
                         Err(_) => {
                             warn!(
-                                "User page fault, killed. Pid: {:?}, sepc: {:#x}, stval: {:#x}",
+                                "User page fault, killed. Pid: {:?}, sepc: {:#x}, stval: {:#x}\n Full context: {:?}",
                                 task.pid(),
                                 task.get_context().sepc,
                                 stval,
+                                task.get_context(),
                             );
                             task.exit();
                         }

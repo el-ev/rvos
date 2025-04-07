@@ -5,7 +5,7 @@ use core::{
 
 use crate::timer;
 use riscv::{
-    interrupt::{supervisor::Exception, supervisor::Interrupt, Trap},
+    interrupt::{Trap, supervisor::Exception, supervisor::Interrupt},
     register::stvec::{self, TrapMode},
 };
 

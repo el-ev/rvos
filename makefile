@@ -59,7 +59,7 @@ fslib:
 	cp $(TARGET_DIR)/libfs.a crates/fs/c/
 	
 user:
-	cd user && make
+	cd user_c && make
 	cd user_rust && cargo build $(BUILDARGS) --bin *
 	
 clean:

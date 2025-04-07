@@ -1,9 +1,9 @@
 #![no_std]
 
+mod helpers;
 mod lazy;
 pub mod mutex;
 mod once;
-mod helpers;
 
 pub use lazy::Lazy;
 pub use once::{Once, OnceCell};

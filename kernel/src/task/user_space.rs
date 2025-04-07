@@ -4,7 +4,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use bitflags::bitflags;
-use hashbrown::HashMap;
+use alloc::collections::BTreeMap;
 use log::trace;
 
 use crate::{
@@ -19,14 +19,14 @@ use crate::{
 
 pub struct UserSpace {
     pub page_table: PageTable,
-    areas: HashMap<VirtPageNum, UserArea>,
+    areas: BTreeMap<VirtPageNum, UserArea>,
 }
 
 impl UserSpace {
     pub fn new() -> Self {
         Self {
             page_table: PageTable::from_kernel_page_table(),
-            areas: HashMap::new(),
+            areas: BTreeMap::new(),
         }
     }
 
@@ -58,12 +58,14 @@ impl UserSpace {
         // alloc stack
         trace!("allocating stack");
         (U_STACK_END - TASK_STACK_SIZE..U_STACK_END)
-            .rev()
             .step_by(PAGE_SIZE)
             .for_each(|va| {
                 let vpn = VirtAddr(va).floor_page();
-                let area =
+                let mut area =
                     UserArea::new(UserAreaType::Framed, UserAreaPerm::R | UserAreaPerm::W, vpn);
+                if va == U_STACK_END - PAGE_SIZE {
+                    area.map(&mut self.page_table).unwrap();
+                }
                 self.areas.insert(vpn, area);
             });
         elf.header.pt2.entry_point() as usize
@@ -113,8 +115,8 @@ impl UserSpace {
                 if Arc::strong_count(&frame) > 1 {
                     let new_frame = frame::alloc().map_err(|_| ())?;
                     unsafe {
-                        let src = pa2kva(frame.ppn.into()).as_ptr::<u8>();
-                        let dst = pa2kva(new_frame.ppn.into()).as_mut_ptr::<u8>();
+                        let src = pa2kva(frame.ppn.into()).as_ptr::<usize>();
+                        let dst = pa2kva(new_frame.ppn.into()).as_mut_ptr::<usize>();
                         core::ptr::copy_nonoverlapping(src, dst, PAGE_SIZE);
                     }
                     let mut new_area = UserArea::new_with_frame(

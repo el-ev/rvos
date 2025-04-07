@@ -7,10 +7,11 @@ rustflags = [
     "-Clink-arg=-Tkernel/src/linker.lds",
     "-Cforce-frame-pointers=yes",
     "-Csymbol-mangling-version=v0",
-    "-Ctarget-feature=+a,+v",
+    # "-Ctarget-feature=+a",
 ]
 
 [profile.dev]
+lto = true
 
 
 [profile.release]

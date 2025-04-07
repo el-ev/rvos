@@ -3,7 +3,8 @@
 
 use core::panic;
 
-use alloc::sync::Arc;
+use alloc::{ffi::c_str, sync::Arc};
+use log::trace;
 
 use crate::{
     console::getchar,
@@ -16,7 +17,6 @@ use crate::{
         taskdef::{IpcStatus, TaskControlBlock, TaskStatus},
         user_space::UserAreaPerm,
     },
-    utils::user_string::UnsafeUserString,
 };
 
 #[repr(usize)]
@@ -37,8 +37,8 @@ enum Syscall {
     IpcTrySend = 13,
     IpcRecv = 14,
     Getchar = 15,
-    // WriteDev = 16,
-    // ReadDev = 17,
+    WriteDev = 16,
+    ReadDev = 17,
     Open = 18,
     Close = 19,
     Read = 20,
@@ -70,8 +70,8 @@ impl From<usize> for Syscall {
             13 => Syscall::IpcTrySend,
             14 => Syscall::IpcRecv,
             15 => Syscall::Getchar,
-            // 16 => Syscall::WriteDev,
-            // 17 => Syscall::ReadDev,
+            16 => Syscall::WriteDev,
+            17 => Syscall::ReadDev,
             18 => Syscall::Open,
             19 => Syscall::Close,
             20 => Syscall::Read,
@@ -109,44 +109,75 @@ pub fn do_syscall() {
         Syscall::IpcTrySend => sys_ipc_try_send(task, args[0], args[1], args[2], args[3]),
         Syscall::IpcRecv => sys_ipc_recv(task, args[0]),
         Syscall::Getchar => sys_getchar(),
-        // Syscall::WriteDev => sys_write_dev(task, args[0], args[1], args[2]),
-        // Syscall::ReadDev => sys_read_dev(task, args[0], args[1], args[2]),
+        Syscall::WriteDev => sys_write_dev(task, args[0], args[1], args[2]),
+        Syscall::ReadDev => sys_read_dev(task, args[0], args[1], args[2]),
         _ => OsError::BadSyscall.into(),
     };
 }
 
+macro_rules! syscall_trace {
+    ($syscall:ty, $fmt:tt $(, $arg:expr)*) => {
+        trace!(concat!("[{:?}] syscall {}: ", $fmt), $crate::task::hart::get_current_task().unwrap().pid(), stringify!($syscall), $($arg),*);
+    };
+}
+
 fn sys_putchar(c: usize) -> usize {
+    syscall_trace!(Syscall::Putchar, "{}", c);
     print!("{}", c as u8 as char);
     OsError::Success.into()
 }
 
 fn sys_print_console(task: Arc<TaskControlBlock>, ptr: usize, len: usize) -> usize {
-    match UnsafeUserString::new(task, ptr as *const _, Some(len)).checked() {
-        Some(s) => {
-            unsafe {
-                riscv::register::sstatus::set_sum();
-            }
-            print!("{}", s);
+    syscall_trace!(Syscall::PrintConsole, "ptr: 0x{:x}, len: {}", ptr, len);
+    if is_illegal_user_va_range(ptr, len) {
+        return OsError::InvalidParam.into();
+    }
+    unsafe {
+        riscv::register::sstatus::set_sum();
+    }
+    let p = ptr as *const u8;
+    let mut q = p;
+    let maxlen = len;
+    let mut rlen = 0;
+    while unsafe { *q } != 0 {
+        rlen += 1;
+        if rlen > maxlen {
+            break;
+        }
+        q = unsafe { q.add(1) };
+    }
+    let str = unsafe { core::slice::from_raw_parts(p, rlen) };
+    match core::str::from_utf8(str) {
+        Ok(s) => {
+            print!("{}", &s[..len.min(s.len())]);
             unsafe {
                 riscv::register::sstatus::clear_sum();
             }
             OsError::Success
         }
-        None => OsError::InvalidParam,
+        Err(_) => {
+            unsafe {
+                riscv::register::sstatus::clear_sum();
+            }
+            OsError::InvalidParam
+        }
     }
     .into()
 }
 
 fn sys_get_task_id(task: Arc<TaskControlBlock>) -> usize {
+    syscall_trace!(Syscall::GetTaskId, "{}", task.pid().0);
     task.pid().0
 }
 
 fn sys_yield(task: Arc<TaskControlBlock>) -> usize {
+    syscall_trace!(Syscall::Yield, "");
     task.set_yield_flag(true);
     OsError::Success.into()
 }
 
 fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
+    syscall_trace!(Syscall::TaskDestroy, "{}", pid);
     if let Some(task) = task.get_task(Pid(pid)) {
         if task.status() == TaskStatus::Running {
             task.set_yield_flag(true);
@@ -161,6 +192,7 @@ fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
 }
 
 fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
+    syscall_trace!(Syscall::SetTlbModEntry, "pid: {}, entry: 0x{:x}", pid, entry);
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
         task.set_user_exception_entry(entry);
@@ -172,6 +204,13 @@ fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) 
 }
 
 pub fn sys_mem_alloc(task: Arc<TaskControlBlock>, pid: usize, va: usize, perm: usize) -> usize {
+    syscall_trace!(
+        Syscall::MemAlloc,
+        "pid: {}, va: 0x{:x}, perm: 0x{:x}",
+        pid,
+        va,
+        perm
+    );
     if is_illegal_user_va_range(va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
@@ -199,6 +238,15 @@ pub fn sys_mem_map(
     dst_va: usize,
     perm: usize,
 ) -> usize {
+    syscall_trace!(
+        Syscall::MemMap,
+        "src_pid: {}, src_va: 0x{:x}, dst_pid: 0x{:x}, dst_va: 0x{:x}, perm: 0x{:x}",
+        src_pid,
+        src_va,
+        dst_pid,
+        dst_va,
+        perm
+    );
     if is_illegal_user_va_range(src_va, PAGE_SIZE) || is_illegal_user_va_range(dst_va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
@@ -232,6 +280,7 @@ pub fn sys_mem_map(
 }
 
 pub fn sys_mem_unmap(task: Arc<TaskControlBlock>, pid: usize, va: usize) -> usize {
+    syscall_trace!(Syscall::MemUnmap, "pid: {}, va: 0x{:x}", pid, va);
     if is_illegal_user_va_range(va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
@@ -248,10 +297,12 @@ pub fn sys_mem_unmap(task: Arc<TaskControlBlock>, pid: usize, va: usize) -> usiz
 }
 
 pub fn sys_exofork(task: Arc<TaskControlBlock>) -> usize {
-    0
+    syscall_trace!(Syscall::Exofork, "");
+    unimplemented!()
 }
 
 pub fn sys_set_env_status(task: Arc<TaskControlBlock>, pid: usize, status: usize) -> usize {
+    syscall_trace!(Syscall::SetEnvStatus, "pid: {}, status: {}", pid, status);
     let status = match status {
         0 => TaskStatus::Sleeping,
         1 => TaskStatus::Ready,
@@ -272,6 +323,7 @@ pub fn sys_set_env_status(task: Arc<TaskControlBlock>, pid: usize, status: usize
 }
 
 pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) -> usize {
+    syscall_trace!(Syscall::SetTrapframe, "pid: {}, ptr: 0x{:x}", pid, ptr);
     if is_illegal_user_va_range(ptr, 34 * size_of::<usize>()) {
         return OsError::InvalidParam.into();
     }
@@ -291,18 +343,29 @@ pub fn sys_set_trapframe(task: Arc<TaskControlBlock>, pid: usize, ptr: usize) ->
 }
 
 pub fn sys_panic(task: Arc<TaskControlBlock>, ptr: usize) -> usize {
+    syscall_trace!(Syscall::Panic, "ptr: 0x{:x}", ptr);
+    if is_illegal_user_va_range(ptr, PAGE_SIZE) {
+        return OsError::InvalidParam.into();
+    }
     unsafe {
         riscv::register::sstatus::set_sum();
     }
-    let panic_info = UnsafeUserString::new(task, ptr as *const u8, None).checked();
-    match panic_info {
-        Some(info) => {
-            panic!("{}", info);
+    let p = ptr as *const u8;
+    let mut q = p;
+    let maxlen = 512;
+    let mut len = 0;
+    while unsafe { *q } != 0 {
+        len += 1;
+        if len > maxlen {
+            break;
         }
-        None => {
-            panic!("User explicit panic");
-        }
+        q = unsafe { q.add(1) };
     }
+    let panic_info = unsafe { core::slice::from_raw_parts(p, len) };
+    panic!(
+        "{}",
+        core::str::from_utf8(panic_info).unwrap_or("Invalid user panic info")
+    );
 }
 
 pub fn sys_ipc_try_send(
@@ -312,6 +375,14 @@ pub fn sys_ipc_try_send(
     src_va: usize,
     perm: usize,
 ) -> usize {
+    syscall_trace!(
+        Syscall::IpcTrySend,
+        "pid: {}, value: 0x{:x}, src_va: 0x{:x}, perm: 0x{:x}",
+        pid,
+        value,
+        src_va,
+        perm
+    );
     if src_va != 0 && is_illegal_user_va_range(src_va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
@@ -359,6 +430,7 @@ pub fn sys_ipc_try_send(
 }
 
 pub fn sys_ipc_recv(task: Arc<TaskControlBlock>, dst_va: usize) -> usize {
+    syscall_trace!(Syscall::IpcRecv, "dst_va: 0x{:x}", dst_va);
     if dst_va != 0 && is_illegal_user_va_range(dst_va, PAGE_SIZE) {
         return OsError::InvalidParam.into();
     }
@@ -372,6 +444,7 @@ pub fn sys_ipc_recv(task: Arc<TaskControlBlock>, dst_va: usize) -> usize {
 }
 
 pub fn sys_getchar() -> usize {
+    syscall_trace!(Syscall::Getchar, "");
     let mut c: u8;
     // TODO: interrupt instead of busy waiting
     loop {
@@ -383,13 +456,27 @@ pub fn sys_getchar() -> usize {
     c as usize
 }
 
-// pub fn sys_write_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
-//     0
-// }
+pub fn sys_write_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
+    syscall_trace!(
+        Syscall::WriteDev,
+        "dev: 0x{:x}, pa: 0x{:x}, len: {}",
+        dev,
+        pa,
+        len
+    );
+    0
+}
 
-// pub fn sys_read_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
-//     0
-// }
+pub fn sys_read_dev(task: Arc<TaskControlBlock>, dev: usize, pa: usize, len: usize) -> usize {
+    syscall_trace!(
+        Syscall::ReadDev,
+        "dev: 0x{:x}, pa: 0x{:x}, len: {}",
+        dev,
+        pa,
+        len
+    );
+    0
+}
 
 pub fn sys_unhandled() -> usize {
     OsError::BadSyscall.into()

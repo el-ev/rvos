@@ -6,3 +6,5 @@ edition = "2024"
 
 [dependencies]
 userlib_macro = { path = "../../user/userlib_macro" }
+userlib = { path = "../../user/userlib" }
+sync = { path = "../../crates/sync" }

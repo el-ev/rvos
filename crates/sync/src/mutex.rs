@@ -57,7 +57,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
             while self.state.load(Ordering::Relaxed) != 0 {
                 H::relax();
                 i += 1;
-                if i >= 0x100_000 {
+                if i >= 0x1000_0000 {
                     panic!(
                         "Deadlock. Hart {} is trying to lock a mutex owned by hart {}",
                         hartid, old_state

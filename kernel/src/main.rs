@@ -5,16 +5,23 @@
 #![feature(postfix_match)]
 #![feature(abi_riscv_interrupt)]
 #![feature(fn_align)]
+#![feature(c_str_module)]
 
 extern crate alloc;
 
-use core::{convert::Infallible, sync::atomic::{AtomicU8, Ordering}};
+use core::{
+    convert::Infallible,
+    sync::atomic::{AtomicU8, Ordering},
+};
 use log::{error, info, warn};
 use mm::address_space::KERNEL_OFFSET;
 use sbi::hsm::sbi_hart_get_status;
 use sync::Lazy;
 
+#[cfg(feature = "smp")]
 pub type Mutex<T> = sync::SpinNoIrqMutex<T>;
+#[cfg(not(feature = "smp"))]
+pub type Mutex<T> = sync::SpinMutex<T>;
 
 mod config;
 mod console;
@@ -81,9 +88,10 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> Infallible {
 
     timer::sleep(1);
 
-    unsafe {
-        riscv::asm::ebreak();
-    }
+    // unsafe {
+    //     riscv::asm::ebreak();
+    // }
+
     task::run()
 }
 
