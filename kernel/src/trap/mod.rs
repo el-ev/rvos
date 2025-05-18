@@ -14,7 +14,7 @@ pub mod context;
 global_asm!(include_str!("trap.S"));
 
 #[unsafe(link_section = ".text.stvec_table")]
-#[naked]
+#[unsafe(naked)]
 #[repr(align(16))]
 pub unsafe extern "C" fn stvec_table() {
     unsafe {
@@ -79,7 +79,7 @@ pub extern "riscv-interrupt-s" fn default_interrupt_handler() {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 pub extern "C" fn ssoft_handler() {
     unsafe {
         naked_asm!(

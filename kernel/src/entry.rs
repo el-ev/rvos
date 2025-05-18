@@ -7,7 +7,7 @@ use crate::mm::{
     paging::pte::{PageTableEntry, PteFlags},
 };
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 unsafe extern "C" fn _low_entry() -> ! {
@@ -30,7 +30,7 @@ unsafe extern "C" fn _low_entry() -> ! {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub unsafe extern "C" fn _second_boot() -> ! {
@@ -53,18 +53,16 @@ pub unsafe extern "C" fn _second_boot() -> ! {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 unsafe extern "C" fn _high_entry() -> ! {
-    unsafe {
-        naked_asm!(
-            "
-            la   t0, kernel_main
-            jr   t0
-        ",
-        )
-    }
+    naked_asm!(
+        "
+        la   t0, kernel_main
+        jr   t0
+    ",
+    )
 }
 
 #[unsafe(link_section = ".data.boot_page_table")]
@@ -84,7 +82,7 @@ struct KernelStack([u8; 1 << 20]); // 1MiB stack
 static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; CPU_NUM]> =
     core::mem::MaybeUninit::uninit();
 
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn set_stack(hartid: usize) {
     unsafe {
         naked_asm!(
@@ -99,7 +97,7 @@ unsafe extern "C" fn set_stack(hartid: usize) {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn set_boot_page_table(hartid: usize) {
     unsafe {
         naked_asm!(

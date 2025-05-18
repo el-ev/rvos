@@ -8,7 +8,7 @@ pub fn user_main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let main_fn = &input.sig.ident;
 
     let expanded = quote! {
-        #[naked]
+        #[unsafe(naked)]
         #[unsafe(no_mangle)]
         #[unsafe(link_section = ".text.entry")]
         pub unsafe extern "C" fn _start() -> ! {
