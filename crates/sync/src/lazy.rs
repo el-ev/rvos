@@ -65,7 +65,7 @@ impl<T, F: Fn() -> T> Lazy<T, F> {
 impl<T: fmt::Debug, F: Fn() -> T> fmt::Debug for Lazy<T, F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.try_get() {
-            Some(data) => write!(f, "Lazy {{ data: {:?} }}", data),
+            Some(data) => write!(f, "Lazy {{ data: {data:?} }}"),
             None => write!(f, "Lazy {{ <not initialized> }}"),
         }
     }

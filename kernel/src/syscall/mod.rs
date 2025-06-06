@@ -192,7 +192,12 @@ fn sys_task_destroy(task: Arc<TaskControlBlock>, pid: usize) -> usize {
 }
 
 fn sys_set_tlb_mod_entry(task: Arc<TaskControlBlock>, pid: usize, entry: usize) -> usize {
-    syscall_trace!(Syscall::SetTlbModEntry, "pid: {}, entry: 0x{:x}", pid, entry);
+    syscall_trace!(
+        Syscall::SetTlbModEntry,
+        "pid: {}, entry: 0x{:x}",
+        pid,
+        entry
+    );
     let task = task.get_task(Pid(pid));
     if let Some(task) = task {
         task.set_user_exception_entry(entry);

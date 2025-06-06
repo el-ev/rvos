@@ -38,7 +38,7 @@ impl<T, H: MutexHelper> Mutex<T, H> {
 }
 
 impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
-    pub fn lock(&self) -> MutexGuard<T, H> {
+    pub fn lock(&'_ self) -> MutexGuard<'_, T, H> {
         let helper_data = H::before_lock();
         let hartid = arch::get_hart_id() as i32;
         while self
@@ -71,7 +71,7 @@ impl<T: ?Sized, H: MutexHelper> Mutex<T, H> {
         }
     }
 
-    pub fn try_lock(&self) -> Option<MutexGuard<T, H>> {
+    pub fn try_lock(&'_ self) -> Option<MutexGuard<'_, T, H>> {
         let helper_data = H::before_lock();
         let hartid = arch::get_hart_id() as i32;
         if self

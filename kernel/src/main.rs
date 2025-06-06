@@ -1,11 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler)]
-#![feature(naked_functions)]
 #![feature(postfix_match)]
 #![feature(abi_riscv_interrupt)]
 #![feature(fn_align)]
-#![feature(c_str_module)]
 
 extern crate alloc;
 
@@ -54,7 +52,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> Infallible {
     clear_bss();
     logging::init();
     print!("{}", BANNER);
-    info!("RVOS Started on hart {}", hartid);
+    info!("RVOS Started on hart {hartid}");
     STARTED_HART.fetch_add(1, Ordering::SeqCst);
     let _device_tree = device_tree::parse_fdt(dtb);
     mm::init();
@@ -99,7 +97,7 @@ extern "C" fn kernel_main(hartid: usize, dtb: usize) -> Infallible {
 pub extern "C" fn other_hart_main(hartid: usize) -> ! {
     STARTED_HART.fetch_add(1, Ordering::SeqCst);
     trap::init();
-    info!("Hart {} started.", hartid);
+    info!("Hart {hartid} started.");
     riscv::asm::wfi();
     task::schedule::SCHEDULER.hart_loop()
 }
@@ -147,6 +145,6 @@ pub fn start_hart(hartid: usize) {
     .error
     {
         sbi::SbiError::Success => (),
-        e => error!("Failed to start hart {}: {:?}", hartid, e),
+        e => error!("Failed to start hart {hartid}: {e:?}"),
     }
 }

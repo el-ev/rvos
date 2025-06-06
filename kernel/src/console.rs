@@ -34,7 +34,10 @@ impl fmt::Write for Stdout {
             CONSOLE.puts(s);
         } else {
             // TODO: Here is a bug when printing user space string
-            sbi::dbcn::sbi_debug_console_write((s.as_ptr() as usize - KERNEL_OFFSET) as u64, s.len() as u64);
+            sbi::dbcn::sbi_debug_console_write(
+                (s.as_ptr() as usize - KERNEL_OFFSET) as u64,
+                s.len() as u64,
+            );
         }
         Ok(())
     }
@@ -43,23 +46,6 @@ impl fmt::Write for Stdout {
 pub fn _print(args: fmt::Arguments<'_>) {
     let _lock = PRINT_LOCK.lock();
     Stdout.write_fmt(args).unwrap();
-}
-
-pub unsafe fn poison_lock() {
-    let mut i = 0;
-    loop {
-        let _lock = PRINT_LOCK.try_lock();
-        if _lock.is_some() {
-            core::mem::forget(_lock);
-            break;
-        }
-        i += 1;
-        if i >= 0x100_000 {
-            unsafe {
-                PRINT_LOCK.force_unlock();
-            }
-        }
-    }
 }
 
 pub fn getchar() -> u8 {

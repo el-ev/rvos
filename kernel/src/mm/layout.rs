@@ -28,21 +28,10 @@ pub fn print_memory_layout() {
     let kernel_size_mb = (kernel_end - kernel_start) / 1024 / 1024;
     info!(
         r#"Kernel memory layout:
-  .text   : 0x{:x} - 0x{:x}
-  .rodata : 0x{:x} - 0x{:x}
-  .data   : 0x{:x} - 0x{:x}
-  .bss    : 0x{:x} - 0x{:x}
-  Kernel  : 0x{:x} - 0x{:x} ({} MB)  "#,
-        text_start,
-        text_end,
-        rodata_start,
-        rodata_end,
-        data_start,
-        data_end,
-        bss_start,
-        bss_end,
-        kernel_start,
-        kernel_end,
-        kernel_size_mb
+  .text   : 0x{text_start:x} - 0x{text_end:x}
+  .rodata : 0x{rodata_start:x} - 0x{rodata_end:x}
+  .data   : 0x{data_start:x} - 0x{data_end:x}
+  .bss    : 0x{bss_start:x} - 0x{bss_end:x}
+  Kernel  : 0x{kernel_start:x} - 0x{kernel_end:x} ({kernel_size_mb} MB)  "#
     )
 }

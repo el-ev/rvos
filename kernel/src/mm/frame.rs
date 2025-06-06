@@ -21,7 +21,7 @@ pub struct FrameTracker {
 
 impl FrameTracker {
     pub fn new(ppn: PhysPageNum) -> Self {
-        trace!("Allocating Frame {:?}", ppn);
+        trace!("Allocating Frame {ppn:?}");
         FrameTracker { ppn }
     }
 }
@@ -123,13 +123,13 @@ impl fmt::Debug for FrameAllocator<ORDER> {
         writeln!(f, "  free_list: [")?;
         for i in 0..ORDER {
             if !self.free_list[i].is_empty() {
-                write!(f, "    order {:2}: ", i)?;
+                write!(f, "    order {i:2}: ")?;
                 for ppn in &self.free_list[i] {
-                    write!(f, "{} ", ppn)?;
+                    write!(f, "{ppn} ")?;
                 }
                 writeln!(f)?;
             } else {
-                writeln!(f, "    order {:2}: empty", i)?;
+                writeln!(f, "    order {i:2}: empty")?;
             }
         }
         writeln!(f, "  ]")?;
@@ -163,10 +163,7 @@ pub fn alloc_frames(size: usize, align: usize) -> Result<Vec<FrameTracker>, OsEr
             clear_frame(frame, size);
         }
     } else {
-        warn!(
-            "Failed to allocate {} frames with alignment {}.",
-            size, align
-        );
+        warn!("Failed to allocate {size} frames with alignment {align}.");
     }
     frame
         .map(|frame| {

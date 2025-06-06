@@ -2,9 +2,9 @@ use crate::{
     error::OsError,
     mm::{addr::pa2kva, address_space::U_HEAP_BEG, consts::PAGE_SIZE},
 };
+use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use bitflags::bitflags;
-use alloc::collections::BTreeMap;
 use log::trace;
 
 use crate::{

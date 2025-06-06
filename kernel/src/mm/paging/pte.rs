@@ -100,7 +100,7 @@ impl PageTableEntry {
 
 impl fmt::Debug for PageTableEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "PTE @ {:p}", self)?;
+        writeln!(f, "PTE @ {self:p}")?;
         writeln!(f, "  bits: {:#018x}", self.bits)?;
         writeln!(f, "  ppn: {}", self.ppn())?;
         writeln!(f, "  flags: {:?}", self.flags())

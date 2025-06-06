@@ -11,9 +11,8 @@ use crate::mm::{
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 unsafe extern "C" fn _low_entry() -> ! {
-    unsafe {
-        naked_asm!(
-            "   mv  tp, a0
+    naked_asm!(
+        "   mv  tp, a0
             li  s0, {kernel_offset}
             add a1, a1, s0
             call {set_stack}
@@ -23,20 +22,18 @@ unsafe extern "C" fn _low_entry() -> ! {
             add t1, t1, s0
             jr  t1
         ",
-            kernel_offset = const KERNEL_OFFSET,
-            set_stack   = sym set_stack,
-            set_boot_page_table = sym set_boot_page_table,
-        )
-    }
+        kernel_offset = const KERNEL_OFFSET,
+        set_stack   = sym set_stack,
+        set_boot_page_table = sym set_boot_page_table,
+    )
 }
 
 #[unsafe(naked)]
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub unsafe extern "C" fn _second_boot() -> ! {
-    unsafe {
-        naked_asm!(
-            "   mv  tp, a0
+    naked_asm!(
+        "   mv  tp, a0
             li  s0, {kernel_offset}
             add a1, a1, s0
             call {set_stack}
@@ -46,11 +43,10 @@ pub unsafe extern "C" fn _second_boot() -> ! {
             add t1, t1, s0
             jr  t1
         ",
-            kernel_offset = const KERNEL_OFFSET,
-            set_stack   = sym set_stack,
-            set_boot_page_table = sym set_boot_page_table,
-        )
-    }
+        kernel_offset = const KERNEL_OFFSET,
+        set_stack   = sym set_stack,
+        set_boot_page_table = sym set_boot_page_table,
+    )
 }
 
 #[unsafe(naked)]
@@ -84,24 +80,21 @@ static mut KERNEL_STACK: core::mem::MaybeUninit<[KernelStack; CPU_NUM]> =
 
 #[unsafe(naked)]
 unsafe extern "C" fn set_stack(hartid: usize) {
-    unsafe {
-        naked_asm!(
-            "   add  t0, a0, 1
+    naked_asm!(
+        "   add  t0, a0, 1
             slli t0, t0, 20
             la   sp, {stack}
             add  sp, sp, t0
             ret
         ",
-            stack = sym KERNEL_STACK,
-        )
-    }
+        stack = sym KERNEL_STACK,
+    )
 }
 
 #[unsafe(naked)]
 unsafe extern "C" fn set_boot_page_table(hartid: usize) {
-    unsafe {
-        naked_asm!(
-            "   la   t0, {boot_page_table}
+    naked_asm!(
+        "   la   t0, {boot_page_table}
             srli t0, t0, 12
             li   t1, 8 << 60
             or   t0, t0, t1
@@ -109,7 +102,6 @@ unsafe extern "C" fn set_boot_page_table(hartid: usize) {
             sfence.vma
             ret
         ",
-            boot_page_table = sym BOOT_PAGE_TABLE,
-        )
-    }
+        boot_page_table = sym BOOT_PAGE_TABLE,
+    )
 }

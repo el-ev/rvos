@@ -1,7 +1,4 @@
-use core::{
-    panic::PanicInfo,
-    sync::atomic::AtomicIsize,
-};
+use core::{panic::PanicInfo, sync::atomic::AtomicIsize};
 
 use alloc::{format, string::String};
 use arch::get_hart_id;
